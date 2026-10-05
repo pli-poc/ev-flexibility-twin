@@ -6,7 +6,7 @@ The standalone `/forecasting/` lab compares a season-and-day-type historical ave
 
 Each synthetic depot day has uncertain arriving energy in 15-minute slots. Calendar, pre-day temperature and a noisy booking signal are observable features. Independent attendance and energy noise are hidden. Real arriving requests become observable at arrival; requests have four-hour charging deadlines. Individual departure uncertainty, state of charge, charger counts and reserve settlement are outside this first experiment.
 
-The regression stores training examples and averages the nearest profiles. Validation selects 3, 7, 15 or 31 neighbours by mean absolute error, then calibrates a pooled 90% absolute-error interval across operating slots (06:00–18:00). The interval is diagnostic, not an input to dispatch. MAE in the comparison averages all 96 slots, including zero overnight demand.
+The regression stores training examples and averages the nearest profiles. Validation selects 3, 7, 15 or 31 neighbours by mean absolute error, then calibrates a pooled 90% absolute-error interval across operating slots (06:00–18:00). In the initial controller the interval was diagnostic; the extension below uses it to size a future-demand reserve. MAE in the comparison averages all 96 slots, including zero overnight demand.
 
 Training seed is user-selected; validation uses seed + 7919; the independent benchmark uses seed + 104729. All sets span the same calendar range but have independent synthetic realizations. This is an independent-noise test, not evidence of generalisation to another depot or an unseen seasonal regime. Test outcomes never tune the model.
 
@@ -27,3 +27,23 @@ All methods use one rolling capacity-reservation heuristic. Future predicted arr
 Learned MAE improves 5.56%; nominal 90% range achieves 90.50% coverage. All methods deliver 90673.56 kWh. Learned dispatch costs €11.91 more than the average forecast. This demonstrates forecast accuracy improvement, not cost savings. More accurate forecasts do not automatically improve a reservation heuristic. An uncertainty-aware controller and constrained-depot stress tests are subsequent work, not implemented claims.
 
 Export contains the frozen model and all paired day-level inputs, predictions and dispatch traces. Tests enforce future-demand isolation, identical-controller behaviour, determinism, energy conservation and capacity limits. Browser tests exercise training, evidence export and mobile layout.
+
+## Uncertainty-aware controller extension
+
+The controller now adds a validation-selected fraction of the calibrated error radius to future operating-slot reservations. It also applies a feasibility guard: observed deadline requests must charge now when remaining future physical capacity cannot cover them. The guard uses only already-arrived requests. Compare five policies: historical means, learned means, learned means with guard, uncertainty with guard, and perfect forecasts with guard. The guarded-mean ablation separates the value of the buffer from the guard. All policies share physical capacity and tariffs.
+
+A separate 35-day controller-validation set (seed + 15401) chooses one buffer from 0, 0.25, 0.5 and 1. The objective is charging cost + €20 per unmet kWh; this is an illustrative service preference. Tuning includes 100%, 65% and 45% capacity. One buffer is frozen across all limits. The new benchmark uses seed + 209759, distinct from the previous forecasting benchmark. Demand forecasts and controller settings are frozen before generating it. The public UI switches capacity and shows both forecast and dispatch traces; exported evidence contains all three limits and five policies.
+
+### New independent benchmark
+
+365-day predictor, seed 42; controller validation seed 15443; selected buffer 1; 365 fresh paired days, seed 209801:
+
+| Headroom | Mean + guard unmet kWh | Uncertainty unmet kWh | Reduction | Mean + guard cost € | Uncertainty cost € |
+|---|---:|---:|---:|---:|---:|
+| 100% | 0 | 0 | None | 11036.39 | 11461.32 |
+| 65% | 418.49 | 326.23 | 22.0% | 12492.63 | 12836.37 |
+| 45% | 4870.23 | 4183.22 | 14.1% | 13610.66 | 13837.22 |
+
+All runs have zero capacity violations. At 65%, uncertainty delivers 92.25 additional kWh at €343.74 higher cost. At 45%, it delivers 687.00 additional kWh at €226.55 higher cost. Thus this experiment demonstrates improved deadline service under constrained capacity, not cheaper charging. At full headroom the reserve is unnecessary and raises cost by €424.94. The uniform buffer intentionally exposes that tradeoff. Forecast interval coverage is 89.77%; learned MAE is 1.354718 versus 1.408973 for historical means on this new test.
+
+Uncertainty is a conservative planning allowance, not a probabilistic guarantee of joint future demand. Perfect forecasts still use a heuristic and can be outperformed on service by an inflated reserve. Grid limits do not remove infeasibility; unmet demand remains visible. Individual charger/session dynamics and flexibility settlement remain outside this aggregate experiment.
