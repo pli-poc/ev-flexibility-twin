@@ -22,7 +22,9 @@ const {spawn}=require('node:child_process');
   await page.getByLabel('Requested grid connection',{exact:true}).fill('NL-DEPOT-A');
   const flexDownload=page.waitForEvent('download');await page.getByRole('button',{name:'Export evidence'}).click();
   const flexFile=await flexDownload;const flexJson=JSON.parse(fs.readFileSync(await flexFile.path(),'utf8'));assert.equal(flexJson.reference.schemaVersion,'ev-flexibility-report/1');
-  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'test-results/flexibility-mobile.png',fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  await page.waitForFunction(()=>document.documentElement.scrollWidth<=window.innerWidth);
+  await page.screenshot({path:'test-results/flexibility-mobile.png',fullPage:true});
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
   await page.setViewportSize({width:1600,height:1000});await page.goto('http://127.0.0.1:4173/ev-flexibility-twin/',{waitUntil:'networkidle'});
 
