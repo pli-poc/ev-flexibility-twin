@@ -40,12 +40,15 @@ export type SimulationOptions = {
  price?:(minute:number)=>number;
  exportPrice?:number;
  vehicleTransform?:(vehicles:Vehicle[])=>Vehicle[];
+ declaredVehicles?:Vehicle[];
+ communicationUnavailable?:(minute:number)=>boolean;
  powerTransform?:(context:DispatchContext,powers:Record<number,DispatchDecision>)=>Record<number,DispatchDecision>;
  dispatch?:(context:DispatchContext)=>Record<number,DispatchDecision>;
 };
 export function simulate(input:Config,options:SimulationOptions={}):Result{
  const price=options.price??tariff,exportPrice=options.exportPrice??.07;
  const c=validateConfig(input),vehicles=options.vehicleTransform?options.vehicleTransform(vehiclesFor(c)):vehiclesFor(c),events:Event[]=[],frames:Frame[]=[],cars:CarState[]=vehicles.map(v=>({id:v.id,bay:-1,parkedAt:-1,delivered:0,power:0,status:'Expected',reason:'Not on site yet'}));
+ const observedVehicles=options.declaredVehicles??vehicles;
  let battery=50,temp=21,ready=0,departed=0,shortfall=0,cost=0,importKwh=0,exportKwh=0,delivered=0,peak=0,violations=0,excess=0,comfort=0,taskEnergy=0;
  const emit=(time:number,text:string,type:Event['type']='info',owner='Charging operator')=>events.push({time,text,type,owner});
  for(let t=0;t<1440;t++){
@@ -85,28 +88,28 @@ export function simulate(input:Config,options:SimulationOptions={}):Result{
   const faulty=(s:CarState)=>c.preset==='fault'&&(s.bay===2||s.bay===3)&&t>=600&&t<780;
   const sleeping=(s:CarState)=>c.preset==='sleep'&&s.id===31&&t>=660&&t<720;
   const available=eligible.filter(s=>!faulty(s)&&!sleeping(s));
-  const offline=c.preset==='offline'&&t>=600&&t<720;
+  const offline=(c.preset==='offline'&&t>=600&&t<720)||(options.communicationUnavailable?.(t)??false);
   const policy=offline?'balanced':c.policy;
   let budget=policy==='immediate'?1e6:Math.max(0,limit-3-building+solar+bp);
   if(c.battery&&available.length&&bp>=0){const wanted=Math.min(available.length*8,80);const extra=Math.min(50-bp,Math.max(0,wanted-budget),(battery-50)*60*.95-bp);if(extra>0){bp+=extra;budget+=extra;}}
-  const custom=options.dispatch&&!offline?options.dispatch({time:t,vehicles,available,budget,building,solar,batteryPower:bp,batteryKwh:battery,limit,price:price(t),outdoor,irradiance,config:c}):undefined;
+  const custom=options.dispatch&&!offline?options.dispatch({time:t,vehicles:observedVehicles,available,budget,building,solar,batteryPower:bp,batteryKwh:battery,limit,price:price(t),outdoor,irradiance,config:c}):undefined;
   const cap=(s:CarState)=>Math.min(vehicles[s.id].maxKw,(vehicles[s.id].need-s.delivered)*60/.9);
   if(custom){
    // A planner requests power; the physical controller enforces current headroom.
-   const ordered=[...available].sort((a,b)=>vehicles[a.id].departure-vehicles[b.id].departure||a.id-b.id);
+   const ordered=[...available].sort((a,b)=>observedVehicles[a.id].departure-observedVehicles[b.id].departure||a.id-b.id);
    for(const s of ordered){const want=custom[s.id]?.power??0;s.power=Math.min(cap(s),Math.max(0,Number.isFinite(want)?want:0),budget);budget-=s.power;}
   }else if(policy==='balanced'){
    let rem=[...available].sort((a,b)=>((a.id+Math.floor(t/10))%vehicles.length)-((b.id+Math.floor(t/10))%vehicles.length));
    while(rem.length&&budget>1e-8){const share=budget/rem.length;let progressed=false;for(const s of [...rem]){if(cap(s)<=share){s.power=cap(s);budget-=s.power;rem=rem.filter(x=>x!==s);progressed=true;}}
     if(!progressed){if(share>=1.4){rem.forEach(s=>s.power=share);budget=0;}else{for(const s of rem){if(budget<1.4)break;s.power=Math.min(cap(s),budget,vehicles[s.id].maxKw);budget-=s.power;}break;}}}
   }else{
-   const slack=(s:CarState)=>vehicles[s.id].departure-t-(vehicles[s.id].need-s.delivered)/(.9*vehicles[s.id].maxKw)*60;
+   const slack=(s:CarState)=>observedVehicles[s.id].departure-t-(vehicles[s.id].need-s.delivered)/(.9*vehicles[s.id].maxKw)*60;
    const ordered=[...available].sort((a,b)=>policy==='ems'?slack(a)-slack(b)||a.id-b.id:a.id-b.id);
    for(const s of ordered){let target=cap(s);if(policy==='ems'&&slack(s)>150&&price(t)>.3&&solar<building)target=Math.min(target,2.8);if(budget>=1.4||target<1.4){s.power=Math.min(target,budget);budget-=s.power;}}
   }
   if(options.powerTransform){
    const planned:Record<number,DispatchDecision>={};for(const s of available)planned[s.id]={power:s.power,reason:custom?.[s.id]?.reason??'Strategy allocation'};
-   const adjusted=options.powerTransform({time:t,vehicles,available,budget:Math.max(0,limit-3-building+solar+bp),building,solar,batteryPower:bp,batteryKwh:battery,limit,price:price(t),outdoor,irradiance,config:c},planned);
+   const adjusted=options.powerTransform({time:t,vehicles:observedVehicles,available,budget:Math.max(0,limit-3-building+solar+bp),building,solar,batteryPower:bp,batteryKwh:battery,limit,price:price(t),outdoor,irradiance,config:c},planned);
    for(const s of available){const v=adjusted[s.id];if(v&&Number.isFinite(v.power)){s.power=Math.min(s.power,Math.max(0,v.power));s.reason=v.reason;if(custom)custom[s.id]={power:s.power,reason:v.reason};}}
   }
   for(const s of eligible){const v=vehicles[s.id];if(faulty(s)){s.status='Fault';s.reason='Charger unavailable until 13:00';}else if(sleeping(s)){s.status='Sleeping';s.reason='Vehicle not accepting power · recovery 12:00';}else{s.status=s.power>0?'Charging':'Paused';s.reason=custom?.[s.id]?.reason??(s.power>0?(policy==='ems'?'Allocated by departure urgency and site headroom':policy==='balanced'?'Fair share of current site headroom':'Immediate maximum charging'):'Waiting for available site capacity');}const add=s.power*.9/60;s.delivered+=add;delivered+=add;if(s.delivered>=v.need-.00001){s.status='Ready';s.reason='Requested energy delivered · parked until departure';}}
@@ -119,6 +122,8 @@ export function simulate(input:Config,options:SimulationOptions={}):Result{
   if(t===600&&c.preset==='fault')emit(t,'Chargers 03 & 04 unavailable · service visit in progress','warning');
   if(t===780&&c.preset==='fault')emit(t,'Chargers 03 & 04 restored','success');
   if(t===600&&offline)emit(t,'Remote EMS offline · local load balancing active','warning','EMS support');
+  if(t===660&&options.communicationUnavailable?.(t))emit(t,'Telemetry stale · local load balancing active','warning','EMS support');
+  if(t===690&&options.communicationUnavailable?.(t-1))emit(t,'Telemetry restored · planning resumed','success','EMS support');
   if(t===720&&c.preset==='offline')emit(t,'Remote EMS restored','success','EMS support');
   if(t===660&&c.preset==='sleep')emit(t,'Van 32 stopped accepting power · support notified','warning');
   if(t===720&&c.preset==='sleep')emit(t,'Van 32 recovery attempted at departure','success');

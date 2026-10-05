@@ -31,7 +31,7 @@ export type OptimizerResult=Result&{optimizer:OptimizerConfig;explanations:Recor
  * Perfect synthetic building/PV forecast; future battery discharge is not assumed.
  * The shared physical engine applies faults, queuing, storage and current import limits.
  */
-export function simulateOptimized(input:Config,raw:OptimizerConfig,preparedForecast?:Result,controls:Pick<SimulationOptions,'vehicleTransform'|'powerTransform'>={}):OptimizerResult{
+export function simulateOptimized(input:Config,raw:OptimizerConfig,preparedForecast?:Result,controls:Pick<SimulationOptions,'vehicleTransform'|'powerTransform'|'declaredVehicles'|'communicationUnavailable'>={}):OptimizerResult{
  const c=validateConfig(input),opt=validateOptimizer(raw),price=(t:number)=>retail(opt.market,t);
  const forecast=preparedForecast??simulate({...c,policy:'balanced'},{price,exportPrice:EXPORT_PRICE});
  let signature='',plans:Record<number,Float64Array>={},gaps:Record<number,number>={};
