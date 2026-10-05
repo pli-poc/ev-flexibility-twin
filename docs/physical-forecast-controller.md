@@ -39,3 +39,27 @@ The underlying vehicle generator includes requests that exceed the maximum energ
 ## Validation and evidence
 
 Physical tests verify maximum power and requested-energy caps, departure/arrival behaviour, grid safety under disturbances, energy conservation, hidden-future isolation, blocked remote dispatch during stale telemetry and identical disturbed vehicle schedules across comparisons. Browser tests train, export, inspect a disturbed scenario, check mobile layout, and hand it to the selected forecast row in the 3D twin. Evidence exports include the model, seed streams, paired metrics and inspected physical frames. Main comparison exports include disturbance and model identity in the scenario fingerprint.
+
+## Focused service-planner pass
+
+The v2 planner caps requests to individually deliverable remaining energy, replans every minute, uses a shared deadline-capacity guard, and turns predicted future arrivals into a soft opportunity cost instead of granting them capacity ahead of known jobs. The old planner is retained as `forecast-legacy`; `service-only` is the exact no-forecast ablation. Existing saved v1 models continue to use the old planner until retrained.
+
+Independent controller validation covers 18 scenarios and six disturbance types. It selects forecast weights 0, 0.05 or 0.2 and buffers 0, 0.5 or 1 (nine candidates). The predictor remains frozen before controller fitting. Seed-42 validation selects weight 0 and buffer 0: forecasts add no demonstrated value here. This is explicitly labelled in the main twin and physical lab. The default baseline remains available and forecast/service replay is opt-in.
+
+Loss diagnostics now compute an individual availability bound from actual bay assignment, parking delay, dwell, maximum charger power and fault/sleep intervals. Dwell-only losses and additional queue/fault losses are shown separately. This hindsight bound relaxes aggregate grid constraints; its residual gap also includes physical site constraints and cannot all be called avoidable scheduling loss. No hindsight diagnostic enters dispatch or validation decisions.
+
+After freezing the 140-day seed-42 model, a new 42-scenario benchmark uses seeds 74804, 98532 and 25063 (seed offsets 174763, 198491, 225023 modulo 100001):
+
+| Policy | Cost € | Unmet kWh | Ready / departed | Violations | Weighted score |
+|---|---:|---:|---:|---:|---:|
+| Previous forecast planner | 7034.97 | 11298.80 | 692 / 1491 | 0 | 233011.00 |
+| Validated service planner | 7013.72 | 11284.22 | 714 / 1491 | 0 | 232698.15 |
+| No-forecast ablation | 7013.72 | 11284.22 | 714 / 1491 | 0 | 232698.15 |
+| Deadline-aware EMS | 7136.57 | 11266.46 | 683 / 1491 | 0 | 232465.73 |
+| Cheapest | 6869.59 | 11308.04 | 707 / 1491 | 0 | 233030.38 |
+
+The service planner improves on the previous forecast planner by 22 completed departures, 14.58 kWh less unmet energy and €21.25 less cost. It does not win the weighted objective against deadline-aware EMS. It completes 31 more departures and costs €122.85 less than deadline-aware EMS, but has 17.76 kWh more unmet energy: a tradeoff, not equivalent-service savings.
+
+Availability bounds explain 10589.59 kWh of unavoidable per-vehicle unmet demand: 2530.36 kWh from dwell/power limits and 8059.23 kWh additional queue/fault constraints. The service planner's residual is 694.63 kWh, including grid constraints. Approximately 94% of its unmet demand is already explained by the relaxed availability bound. These results point to parking/charger availability and request realism as dominant simulator limitations; forecasting cannot create an available bay or overcome maximum charger power.
+
+Decision after this pass: retain the improvements and diagnostics, preserve all baselines, and keep AI forecasting experimental. Do not present a proven physical AI advantage. Tests verify the bound decomposition and exact zero-weight ablation in addition to existing safety and observation tests.

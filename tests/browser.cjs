@@ -19,7 +19,7 @@ const {spawn}=require('node:child_process');
   await page.getByRole('button',{name:'Train physical controller',exact:true}).click();
   await page.getByRole('heading',{name:'Fresh physical benchmark',exact:true}).waitFor({timeout:180000});
   const physicalDownload=page.waitForEvent('download');await page.getByRole('button',{name:'Export physical evidence',exact:true}).click();
-  const physicalFile=await physicalDownload;const physical=JSON.parse(fs.readFileSync(await physicalFile.path(),'utf8'));assert.equal(physical.model.schema,'physical-forecast/1');assert.equal(physical.benchmark.seeds.length,3);assert.equal(physical.benchmark.totals.length,9);
+  const physicalFile=await physicalDownload;const physical=JSON.parse(fs.readFileSync(await physicalFile.path(),'utf8'));assert.equal(physical.model.schema,'physical-forecast/1');assert.equal(physical.benchmark.seeds.length,3);assert.equal(physical.benchmark.totals.length,11);
   await page.getByLabel('Physical scenario').selectOption('1');
   await page.setViewportSize({width:390,height:844});await page.waitForFunction(()=>document.documentElement.scrollWidth<=window.innerWidth);await page.screenshot({path:'test-results/physical-forecast-mobile.png',fullPage:true});
   await page.setViewportSize({width:1600,height:1000});await page.getByRole('link',{name:'Replay AI controller in 3D twin',exact:true}).click();
