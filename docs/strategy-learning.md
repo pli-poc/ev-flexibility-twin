@@ -29,3 +29,7 @@ Pool sites are identical replicas at one connection. Charging decisions use the 
 ## Checks
 
 GitHub Actions compiles and tests original simulation, ML, replay, flexibility and selector invariants. Selector checks cover real six-strategy outcomes, whole-week splits, training-only scaling/examples, validation-only tuning, no future-failure feature leakage, deterministic seeded outcomes and invalid model rejection. Browser checks exercise worker training, report/model export and held-out replay.
+
+## Recorded seed-42 full-year validation
+
+A local 365-day run with default objective weights completed with 211 training, 77 validation and 77 held-out test days. Validation selected k=9. Held-out exact best-strategy agreement was 67.53%; mean objective regret against the hindsight oracle was 231.12. The learned selector's total weighted objective was 6,084,068.69 versus 6,074,821.27 for the best fixed deadline-aware strategy, so learned selection did not outperform it. These objective units include large illustrative safety/service penalties and are not financial savings. Learned selection recorded 610 import-violation minutes versus 601 for the best fixed strategy. Violations can also reflect uncontrollable building demand. All six strategies received some winning labels over the year. This is verification of the experiment, not a claim of real-world model quality.
