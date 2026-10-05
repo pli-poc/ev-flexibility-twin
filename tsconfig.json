@@ -41,6 +41,9 @@
   ],
   "exclude": [
     "node_modules",
-    "examples"
+    "examples",
+    "out",
+    ".preview",
+    ".test-build"
   ]
 }
