@@ -1,7 +1,7 @@
 /** Standalone synthetic depot experiment. No ChargeWeave or market settlement. */
 export type DemandDay={day:number;seed:number;features:number[];energy:number[]};
-export type ForecastModel={version:1;k:number;training:DemandDay[];validationMae:number;baselineMae:number;radius:number;controller?:{buffer:number;validationScore:number;seed:number;days:number}};
-export type ForecastRun={mode:string;cost:number;unmet:number;delivered:number;violations:number;mae:number;actual:number[];forecast:number[];load:number[];capacityScale:number};
+export type ForecastModel={version:1;k:number;training:DemandDay[];validationMae:number;baselineMae:number;radius:number;controller?:{adaptiveBuffer:number;pressureThreshold:number;buffer:number;validationScore:number;seed:number;days:number}};
+export type ForecastRun={mode:string;cost:number;unmet:number;delivered:number;violations:number;mae:number;actual:number[];forecast:number[];load:number[];capacityScale:number;reserveActive:boolean;pressure:number};
 const slots=96;
 function rng(seed:number){let a=seed|0;return()=>{a+=0x6D2B79F5;let t=Math.imul(a^a>>>15,1|a);t^=t+Math.imul(t^t>>>7,61|t);return((t^t>>>14)>>>0)/4294967296;};}
 export function demandDay(day:number,seed:number):DemandDay{
@@ -29,10 +29,13 @@ export function trainForecast(days=365,seed=42):ForecastModel{
 export function slotCapacity(t:number){const h=t/4;return 15+8*Math.exp(-1*((h-13)/3)**2);}
 export function slotPrice(t:number){const h=t/4;return .18+.18*Math.exp(-1*((h-18)/2)**2)-.09*Math.exp(-1*((h-12)/2)**2);}
 /** Same reservation planner for all forecasts. It only receives actual arrivals up to now. */
-export type PlannerOptions={capacityScale?:number;buffer?:number;radius?:number;guard?:boolean};
+export type PlannerOptions={capacityScale?:number;buffer?:number;radius?:number;guard?:boolean;pressureThreshold?:number};
+/** Pre-day forecast pressure: peak four-hour arriving energy / physical headroom. */
+export function forecastPressure(forecast:number[],scale:number){let peak=0;for(let start=0;start<=80;start++){let demand=0,capacity=0;for(let t=start;t<start+16;t++){demand+=forecast[t];capacity+=slotCapacity(t)*scale;}peak=Math.max(peak,demand/capacity);}return peak;}
 export function runForecast(day:DemandDay,forecast:number[],mode:string,options:PlannerOptions={}):ForecastRun{
  const scale=options.capacityScale??1;if(!Number.isFinite(scale)||scale<=0||scale>1)throw Error("Capacity scale must be in (0, 1]");
  const capacity=(t:number)=>slotCapacity(t)*scale;
+ const pressure=forecastPressure(forecast,scale),reserveActive=(options.buffer??0)>0&&pressure>=(options.pressureThreshold??0);
  const jobs:{deadline:number;remaining:number}[]=[],load=Array(slots).fill(0);let cost=0,unmet=0,delivered=0,violations=0;
  for(let now=0;now<slots;now++){
   for(const job of jobs)if(job.deadline===now){unmet+=job.remaining;job.remaining=0;}
@@ -47,7 +50,7 @@ export function runForecast(day:DemandDay,forecast:number[],mode:string,options:
   const free=Array.from({length:slots},(_,t)=>t<now?0:capacity(t)-(t===now?allocated:0));
   // Reserve future capacity for predicted arrivals, then plan observed jobs.
   for(let arrival=now+1;arrival<Math.min(slots,now+16);arrival++){
-   let remaining=forecast[arrival]+(arrival>=24&&arrival<72?(options.buffer??0)*(options.radius??0):0);const choices=Array.from({length:Math.min(16,slots-arrival)},(_,i)=>arrival+i).sort((a,b)=>slotPrice(a)-slotPrice(b)||a-b);
+   let remaining=forecast[arrival]+(arrival>=24&&arrival<72?(reserveActive?(options.buffer??0)*(options.radius??0):0):0);const choices=Array.from({length:Math.min(16,slots-arrival)},(_,i)=>arrival+i).sort((a,b)=>slotPrice(a)-slotPrice(b)||a-b);
    for(const t of choices){const take=Math.min(free[t],remaining);free[t]-=take;remaining-=take;}
   }
   for(const job of active.filter(j=>j.remaining>0)){
@@ -58,24 +61,31 @@ export function runForecast(day:DemandDay,forecast:number[],mode:string,options:
   load[now]=allocated;delivered+=allocated;cost+=allocated*slotPrice(now);if(allocated>capacity(now)+1e-7)violations++;
  }
  unmet+=jobs.reduce((s,j)=>s+j.remaining,0);
- return {mode,cost,unmet,delivered,violations,mae:mae(day.energy,forecast),actual:day.energy,forecast,load,capacityScale:scale};
+ return {mode,cost,unmet,delivered,violations,mae:mae(day.energy,forecast),actual:day.energy,forecast,load,capacityScale:scale,reserveActive,pressure};
 }
 export const capacityScales=[1,.65,.45];
 const score=(r:ForecastRun)=>r.cost+20*r.unmet;
 export function tuneController(model:ForecastModel,seed:number,days=35){
- let best=Infinity,buffer=0;
- const validation=Array.from({length:days},(_,i)=>{const day=demandDay(Math.floor(i*365/days),seed);return {day,forecast:predictDemand(model.training,day,model.k)};});
- for(const candidate of [0,.25,.5,1]){let total=0;for(const d of validation)for(const capacityScale of capacityScales)total+=score(runForecast(d.day,d.forecast,'Validation',{capacityScale,buffer:candidate,radius:model.radius,guard:true}));if(total<best){best=total;buffer=candidate;}}
- return {...model,controller:{buffer,validationScore:best/(days*capacityScales.length),seed,days}};
+ let best=Infinity,buffer=0,adaptiveBest=Infinity,adaptiveBuffer=0,pressureThreshold=2;
+ const validation=Array.from({length:days},(_,i)=>{const day=demandDay(Math.floor(i*365/days),seed);const forecast=predictDemand(model.training,day,model.k);return capacityScales.map(capacityScale=>({day,forecast,capacityScale,pressure:forecastPressure(forecast,capacityScale)}));}).flat();
+ const means=validation.map(d=>score(runForecast(d.day,d.forecast,'Validation',{capacityScale:d.capacityScale,guard:true})));
+ for(const candidate of [0,.25,.5,1]){
+  const scores=validation.map(d=>score(runForecast(d.day,d.forecast,'Validation',{capacityScale:d.capacityScale,buffer:candidate,radius:model.radius,guard:true})));
+  const total=scores.reduce((a,b)=>a+b,0);if(total<best){best=total;buffer=candidate;}
+  for(const threshold of [0,.5,.65,.8,1,2]){const total=validation.reduce((s,d,i)=>s+(d.pressure>=threshold?scores[i]:means[i]),0);if(total<adaptiveBest){adaptiveBest=total;adaptiveBuffer=candidate;pressureThreshold=threshold;}}
+ }
+ return {...model,controller:{buffer,adaptiveBuffer,pressureThreshold,validationScore:adaptiveBest/validation.length,seed,days}};
 }
+
 export function benchmarkForecast(model:ForecastModel,days=365,seed=104771){
  const rows=Array.from({length:days},(_,i)=>{const day=demandDay(Math.floor(i*365/days),seed);const historical=predictDemand(model.training,day),learned=predictDemand(model.training,day,model.k);return capacityScales.map(capacityScale=>({day:day.day,capacityScale,runs:[
  runForecast(day,historical,'Historical average',{capacityScale}),
  runForecast(day,learned,'Learned forecast',{capacityScale}),
  runForecast(day,learned,'Mean + deadline guard',{capacityScale,guard:true}),
  runForecast(day,learned,'Uncertainty-aware',{capacityScale,guard:true,buffer:model.controller?.buffer??0,radius:model.radius}),
+ runForecast(day,learned,'Adaptive uncertainty',{capacityScale,guard:true,buffer:model.controller?.adaptiveBuffer??0,radius:model.radius,pressureThreshold:model.controller?.pressureThreshold??2}),
  runForecast(day,day.energy,'Perfect forecast reference',{capacityScale,guard:true})]}));}).flat();
- const summaries=capacityScales.map(capacityScale=>{const group=rows.filter(r=>r.capacityScale===capacityScale);return {capacityScale,totals:group[0].runs.map((r,j)=>({mode:r.mode,cost:group.reduce((s,d)=>s+d.runs[j].cost,0),unmet:group.reduce((s,d)=>s+d.runs[j].unmet,0),delivered:group.reduce((s,d)=>s+d.runs[j].delivered,0),violations:group.reduce((s,d)=>s+d.runs[j].violations,0),mae:group.reduce((s,d)=>s+d.runs[j].mae,0)/days,score:group.reduce((s,d)=>s+score(d.runs[j]),0)}))};});
+ const summaries=capacityScales.map(capacityScale=>{const group=rows.filter(r=>r.capacityScale===capacityScale);return {capacityScale,totals:group[0].runs.map((r,j)=>({mode:r.mode,cost:group.reduce((s,d)=>s+d.runs[j].cost,0),unmet:group.reduce((s,d)=>s+d.runs[j].unmet,0),delivered:group.reduce((s,d)=>s+d.runs[j].delivered,0),violations:group.reduce((s,d)=>s+d.runs[j].violations,0),mae:group.reduce((s,d)=>s+d.runs[j].mae,0)/days,score:group.reduce((s,d)=>s+score(d.runs[j]),0),reserveDays:group.filter(d=>d.runs[j].reserveActive).length}))};});
  const coverage=rows.filter(d=>d.capacityScale===1).reduce((s,d)=>s+d.runs[1].actual.slice(24,72).filter((x,i)=>Math.abs(x-d.runs[1].forecast[i+24])<=model.radius).length,0)/(days*48);
  return {seed,days,rows,totals:summaries[0].totals,summaries,coverage};
 }

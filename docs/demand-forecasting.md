@@ -47,3 +47,19 @@ A separate 35-day controller-validation set (seed + 15401) chooses one buffer fr
 All runs have zero capacity violations. At 65%, uncertainty delivers 92.25 additional kWh at €343.74 higher cost. At 45%, it delivers 687.00 additional kWh at €226.55 higher cost. Thus this experiment demonstrates improved deadline service under constrained capacity, not cheaper charging. At full headroom the reserve is unnecessary and raises cost by €424.94. The uniform buffer intentionally exposes that tradeoff. Forecast interval coverage is 89.77%; learned MAE is 1.354718 versus 1.408973 for historical means on this new test.
 
 Uncertainty is a conservative planning allowance, not a probabilistic guarantee of joint future demand. Perfect forecasts still use a heuristic and can be outperformed on service by an inflated reserve. Grid limits do not remove infeasibility; unmet demand remains visible. Individual charger/session dynamics and flexibility settlement remain outside this aggregate experiment.
+
+## Adaptive activation
+
+An additional adaptive policy activates the uncertainty reserve only when pre-day forecast pressure exceeds a validation-selected threshold. Pressure is the maximum four-hour forecast arriving energy divided by physical energy headroom over the same window. It uses the frozen forecast and known capacity, not actual future arrivals. It is a heuristic pressure indicator, not proof of infeasibility. When inactive, dispatch is exactly the guarded mean controller.
+
+Controller validation jointly selects buffer and threshold from buffers [0, 0.25, 0.5, 1] and thresholds [0, 0.5, 0.65, 0.8, 1, 2]. The fixed reserve remains a separate ablation. Predictor and policy are frozen before a new independent benchmark, seed + 314159. Seed 42 selects buffer 1 and pressure threshold 1 on controller validation seed 15443.
+
+365 fresh days, benchmark seed 314201:
+
+| Headroom | Mean unmet kWh | Fixed/adaptive unmet kWh | Fixed cost € | Adaptive cost € | Active reserve days |
+|---|---:|---:|---:|---:|---:|
+| 100% | 0 | 0 | 11355.62 | 10950.04 | 8 |
+| 65% | 349.04 | 246.48 | 12694.05 | 12371.58 | 135 |
+| 45% | 4770.40 | 4003.32 | 13732.10 | 13628.95 | 271 |
+
+All policies respect capacity. Adaptive and fixed reserve achieve the same aggregate deadline service on this benchmark; adaptive saves €322.47 and €103.15 at the constrained levels. Relative to guarded mean forecasts, adaptive reduces unmet demand 29.4% and 16.1%, with extra charging cost €7.79 and €126.63. At full headroom guarded mean cost is €10945.49, so adaptive retains €4.55 extra cost versus €410.13 for the fixed reserve. Activation substantially reduces unnecessary reserve cost; it does not eliminate false-positive pressure days. These are synthetic, aggregate-depot results, not production or market-revenue evidence.

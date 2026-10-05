@@ -19,7 +19,7 @@ const {spawn}=require('node:child_process');
   await page.getByRole('button',{name:'Train demand forecast',exact:true}).click();
   await page.getByRole('heading',{name:'Unseen demand: paired results',exact:true}).waitFor({timeout:60000});
   const forecastDownload=page.waitForEvent('download');await page.getByRole('button',{name:'Export evidence',exact:true}).click();
-  const forecastFile=await forecastDownload;const forecastEvidence=JSON.parse(fs.readFileSync(await forecastFile.path(),'utf8'));assert.equal(forecastEvidence.model.version,1);assert.equal(forecastEvidence.benchmark.days,35);assert.equal(forecastEvidence.benchmark.totals[1].violations,0);assert.equal(forecastEvidence.benchmark.summaries.length,3);assert.equal(forecastEvidence.benchmark.totals.length,5);assert.ok(forecastEvidence.model.controller);
+  const forecastFile=await forecastDownload;const forecastEvidence=JSON.parse(fs.readFileSync(await forecastFile.path(),'utf8'));assert.equal(forecastEvidence.model.version,1);assert.equal(forecastEvidence.benchmark.days,35);assert.equal(forecastEvidence.benchmark.totals[1].violations,0);assert.equal(forecastEvidence.benchmark.summaries.length,3);assert.equal(forecastEvidence.benchmark.totals.length,6);assert.ok(forecastEvidence.model.controller);
   await page.getByLabel('Forecast capacity').selectOption('0.45');assert.ok((await page.locator('.flex-results').innerText()).includes('45%'));
   await page.screenshot({path:'test-results/demand-forecast-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});await page.waitForFunction(()=>document.documentElement.scrollWidth<=window.innerWidth);await page.screenshot({path:'test-results/demand-forecast-mobile.png',fullPage:true});

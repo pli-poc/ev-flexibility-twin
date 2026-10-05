@@ -1,2 +1,2 @@
 import {trainForecast,benchmarkForecast,tuneController} from '../lib/twin/forecast';
-self.onmessage=e=>{try{const {days,seed}=e.data;const model=tuneController(trainForecast(days,seed),seed+15401);self.postMessage({type:'frozen',model});const benchmark=benchmarkForecast(model,days,seed+209759);self.postMessage({type:'complete',model,benchmark});}catch(error){self.postMessage({type:'error',message:String(error)});}};
+self.onmessage=e=>{try{const {days,seed}=e.data;const model=tuneController(trainForecast(days,seed),seed+15401);self.postMessage({type:'frozen',model});const benchmark=benchmarkForecast(model,days,seed+314159);self.postMessage({type:'complete',model,benchmark});}catch(error){self.postMessage({type:'error',message:String(error)});}};
