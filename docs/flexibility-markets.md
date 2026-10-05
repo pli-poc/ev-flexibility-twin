@@ -8,7 +8,7 @@ The /flexibility/ route models implicit tariff scheduling, congestion and illust
 
 The pool is identical depot replicas at one connection, not geographically diverse depots. Driver eligibility is seeded and stable. A conservative minimum baseline power across the entire window determines reduction capacity; previously reserved power is subtracted. Runtime energy guards can reduce delivery to protect scheduled departures. Unannounced early departures are applied to physical vehicle departure times and can still produce unmet energy demand. Cloud outages stop remote curtailment and expose delivery shortfalls.
 
-ML comparison uses the actual compact MLP from the training lab or an imported validated model; no invented AI improvement. Each policy uses its own no-activation counterfactual. The baseline is frozen before activation and kept distinct from a configurable settlement baseline bias. The existing MLP learns charging decisions; it does not forecast plug-in probability or probabilistic pool availability.
+ML comparison uses the actual compact MLP from the training lab or an imported validated model; no invented AI improvement. Each policy uses its own no-activation counterfactual. The baseline is frozen before activation and kept distinct from a configurable settlement baseline bias. The existing MLP learns charging decisions; it does not forecast plug-in probability or probabilistic pool availability. The separate `/strategy-training/` lab now learns selection across all six real strategies, including simulated flexibility consequences; see [strategy learning](strategy-learning.md).
 
 ## Product assumptions and limits
 

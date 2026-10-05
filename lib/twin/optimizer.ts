@@ -1,4 +1,4 @@
-import {clock,simulate,validateConfig,type Config,type DispatchContext,type DispatchDecision,type Result} from './engine';
+import {clock,simulate,validateConfig,type Config,type DispatchContext,type DispatchDecision,type Result,type SimulationOptions} from './engine';
 
 export type AdvancedPolicy='cheap'|'peak'|'total';
 export type Market='nl'|'flanders'|'wallonia'|'brussels';
@@ -31,7 +31,7 @@ export type OptimizerResult=Result&{optimizer:OptimizerConfig;explanations:Recor
  * Perfect synthetic building/PV forecast; future battery discharge is not assumed.
  * The shared physical engine applies faults, queuing, storage and current import limits.
  */
-export function simulateOptimized(input:Config,raw:OptimizerConfig,preparedForecast?:Result):OptimizerResult{
+export function simulateOptimized(input:Config,raw:OptimizerConfig,preparedForecast?:Result,controls:Pick<SimulationOptions,'vehicleTransform'|'powerTransform'>={}):OptimizerResult{
  const c=validateConfig(input),opt=validateOptimizer(raw),price=(t:number)=>retail(opt.market,t);
  const forecast=preparedForecast??simulate({...c,policy:'balanced'},{price,exportPrice:EXPORT_PRICE});
  let signature='',plans:Record<number,Float64Array>={},gaps:Record<number,number>={};
@@ -88,7 +88,7 @@ export function simulateOptimized(input:Config,raw:OptimizerConfig,preparedForec
   }
   return output;
  };
- const result=simulate({...c,policy:'ems'},{price,exportPrice:EXPORT_PRICE,dispatch});
+ const result=simulate({...c,policy:'ems'},{price,exportPrice:EXPORT_PRICE,dispatch,...controls});
  const explanations:Record<number,string>={};
  for(const v of result.vehicles)explanations[v.id]=`Declared departure ${clock(v.departure)}; ${v.need} kWh requested. Current state and forecast, not a guaranteed future outcome.`;
  return {...result,optimizer:opt,explanations};

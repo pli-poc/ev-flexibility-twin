@@ -40,6 +40,7 @@ export type SimulationOptions = {
  price?:(minute:number)=>number;
  exportPrice?:number;
  vehicleTransform?:(vehicles:Vehicle[])=>Vehicle[];
+ powerTransform?:(context:DispatchContext,powers:Record<number,DispatchDecision>)=>Record<number,DispatchDecision>;
  dispatch?:(context:DispatchContext)=>Record<number,DispatchDecision>;
 };
 export function simulate(input:Config,options:SimulationOptions={}):Result{
@@ -102,6 +103,11 @@ export function simulate(input:Config,options:SimulationOptions={}):Result{
    const slack=(s:CarState)=>vehicles[s.id].departure-t-(vehicles[s.id].need-s.delivered)/(.9*vehicles[s.id].maxKw)*60;
    const ordered=[...available].sort((a,b)=>policy==='ems'?slack(a)-slack(b)||a.id-b.id:a.id-b.id);
    for(const s of ordered){let target=cap(s);if(policy==='ems'&&slack(s)>150&&price(t)>.3&&solar<building)target=Math.min(target,2.8);if(budget>=1.4||target<1.4){s.power=Math.min(target,budget);budget-=s.power;}}
+  }
+  if(options.powerTransform){
+   const planned:Record<number,DispatchDecision>={};for(const s of available)planned[s.id]={power:s.power,reason:custom?.[s.id]?.reason??'Strategy allocation'};
+   const adjusted=options.powerTransform({time:t,vehicles,available,budget:Math.max(0,limit-3-building+solar+bp),building,solar,batteryPower:bp,batteryKwh:battery,limit,price:price(t),outdoor,irradiance,config:c},planned);
+   for(const s of available){const v=adjusted[s.id];if(v&&Number.isFinite(v.power)){s.power=Math.min(s.power,Math.max(0,v.power));s.reason=v.reason;if(custom)custom[s.id]={power:s.power,reason:v.reason};}}
   }
   for(const s of eligible){const v=vehicles[s.id];if(faulty(s)){s.status='Fault';s.reason='Charger unavailable until 13:00';}else if(sleeping(s)){s.status='Sleeping';s.reason='Vehicle not accepting power · recovery 12:00';}else{s.status=s.power>0?'Charging':'Paused';s.reason=custom?.[s.id]?.reason??(s.power>0?(policy==='ems'?'Allocated by departure urgency and site headroom':policy==='balanced'?'Fair share of current site headroom':'Immediate maximum charging'):'Waiting for available site capacity');}const add=s.power*.9/60;s.delivered+=add;delivered+=add;if(s.delivered>=v.need-.00001){s.status='Ready';s.reason='Requested energy delivered · parked until departure';}}
   for(const s of cars){const v=vehicles[s.id];if(t>=s.parkedAt+2&&s.parkedAt>=0&&t<v.departure&&s.delivered>=v.need-.00001)s.status='Ready';}
