@@ -11,8 +11,17 @@ const strategyFactors = {
 };
 
 export function buildForecast({ connected = 42, congestion = "normal", range = "Today" } = {}) {
-  const multiplier = range === "Tomorrow" ? 0.94 : range === "Week" ? 0.86 : 1;
   const congestionFactor = congestionFactors[congestion]?.capacity ?? 1;
+  if (range === "Week") {
+    const demandByDay = [352, 376, 364, 390, 405, 282, 264];
+    const flexibilityByDay = [0.98, 1.02, 1, 1.04, 1.06, 0.88, 0.84];
+    return demandByDay.map((demand, index) => ({
+      hour: index,
+      demand: Math.round(demand * (connected / 42)),
+      flexibility: Math.round(connected * 8.15 * congestionFactor * flexibilityByDay[index]),
+    }));
+  }
+  const multiplier = range === "Tomorrow" ? 0.94 : 1;
   const demand = Array.from({ length: 13 }, (_, index) => {
     const morningPeak = Math.exp(-((index - 5) ** 2) / 7) * 0.72;
     const eveningPeak = Math.exp(-((index - 10) ** 2) / 5) * 0.9;

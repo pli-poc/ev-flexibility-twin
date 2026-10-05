@@ -32,8 +32,11 @@ test("delivery assessment distinguishes achievable and risky dispatch targets", 
 test("forecast range and unknown scenario values safely fall back", () => {
   const today = buildForecast({ connected: 20 });
   const tomorrow = buildForecast({ connected: 20, range: "Tomorrow" });
+  const week = buildForecast({ connected: 42, range: "Week" });
   const unknown = calculateSimulation({ connected: 20, congestion: "unexpected", strategy: "unexpected" });
   assert.ok(tomorrow[5].demand < today[5].demand);
+  assert.equal(week.length, 7);
+  assert.equal(week[4].demand, 405);
   assert.equal(unknown.gridStatus, "Healthy");
   assert.ok(unknown.availableFlex > 0);
 });

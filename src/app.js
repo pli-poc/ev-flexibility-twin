@@ -50,6 +50,7 @@ function updateChart(inputs) {
   const demandLine = line("demand");
   const capacityLine = line("flexibility");
   const area = `${capacityLine} L ${width} ${height} L 0 ${height} Z`;
+  const peakIndex = points.reduce((highest, point, index) => point.demand > points[highest].demand ? index : highest, 0);
 
   elements["forecast-chart"].innerHTML = `
     <defs>
@@ -62,16 +63,19 @@ function updateChart(inputs) {
     <path class="capacity-area" d="${area}"/>
     <path class="demand-line" d="${demandLine}"/>
     <path class="capacity-line" d="${capacityLine}"/>
-    <circle class="chart-point" cx="${x(10)}" cy="${y(points[10].demand)}" r="4"/>
-    <circle class="chart-point capacity-point" cx="${x(10)}" cy="${y(points[10].flexibility)}" r="4"/>
+    <circle class="chart-point" cx="${x(peakIndex)}" cy="${y(points[peakIndex].demand)}" r="4"/>
+    <circle class="chart-point capacity-point" cx="${x(peakIndex)}" cy="${y(points[peakIndex].flexibility)}" r="4"/>
   `;
-  const peak = points[10];
+  const peak = points[peakIndex];
   elements["demand-summary"].innerHTML = `${peak.demand} <small>kW</small>`;
   elements["capacity-summary"].innerHTML = `${peak.flexibility} <small>kW</small>`;
   elements["chart-labels"].innerHTML = (selectedRange === "Week"
     ? ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
     : ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"])
     .map((label) => `<span>${label}</span>`).join("");
+  document.getElementById("insight-copy").innerHTML = selectedRange === "Week"
+    ? "<strong>Peak flexibility day</strong> — Friday has the highest forecast demand across the week."
+    : "<strong>Peak flexibility window</strong> — Best opportunity to dispatch is between <b>17:00 – 19:00</b>, when predicted demand peaks.";
 }
 
 function updateSimulation() {
