@@ -44,16 +44,20 @@ export type SimulationOptions = {
  communicationUnavailable?:(minute:number)=>boolean;
  powerTransform?:(context:DispatchContext,powers:Record<number,DispatchDecision>)=>Record<number,DispatchDecision>;
  dispatch?:(context:DispatchContext)=>Record<number,DispatchDecision>;
+ // Opt-in experiments supply measured building/PV truth; existing scenarios retain their model.
+ environment?:(minute:number,modeled:{building:number;solar:number})=>{building:number;solar:number};
+ minimumChargingKw?:number;
+ observeConnectedRequests?:boolean;
 };
 export function simulate(input:Config,options:SimulationOptions={}):Result{
  const price=options.price??tariff,exportPrice=options.exportPrice??.07;
  const c=validateConfig(input),vehicles=options.vehicleTransform?options.vehicleTransform(vehiclesFor(c)):vehiclesFor(c),events:Event[]=[],frames:Frame[]=[],cars:CarState[]=vehicles.map(v=>({id:v.id,bay:-1,parkedAt:-1,delivered:0,power:0,status:'Expected',reason:'Not on site yet'}));
- const observedVehicles=options.declaredVehicles??vehicles;
+ const observedVehicles=(options.declaredVehicles??vehicles).map(v=>({...v}));
  let battery=50,temp=21,ready=0,departed=0,shortfall=0,cost=0,importKwh=0,exportKwh=0,delivered=0,peak=0,violations=0,excess=0,comfort=0,taskEnergy=0;
  const emit=(time:number,text:string,type:Event['type']='info',owner='Charging operator')=>events.push({time,text,type,owner});
  for(let t=0;t<1440;t++){
   for(const v of vehicles){const s=cars[v.id];s.power=0;if(t===v.departure){s.status='Departed';departed++;const gap=Math.max(0,v.need-s.delivered);shortfall+=gap;if(gap<.05)ready++;emit(t,`${v.name} departed · ${gap<.05?'target met':gap.toFixed(1)+' kWh short'}`,gap<.05?'success':'warning');}
-   if(t===v.arrival){s.status='Queued';s.reason='Waiting for a free charging space';emit(t,`${v.name} arrived · ${v.need} kWh requested · leaves ${clock(v.departure)}`);}}
+   if(t===v.arrival){s.status='Queued';s.reason='Waiting for a free charging space';if(options.observeConnectedRequests)observedVehicles[v.id]={...observedVehicles[v.id],arrival:v.arrival,need:v.need};emit(t,`${v.name} arrived · ${v.need} kWh requested · leaves ${clock(v.departure)}`);}}
   // Departure releases a space. Parking movements take two simulated minutes.
   const used=new Set(cars.filter(s=>s.status!=='Expected'&&s.status!=='Departed'&&s.bay>=0).map(s=>s.bay));
   const waiting=cars.filter(s=>s.status==='Queued').sort((a,b)=>vehicles[a.id].arrival-vehicles[b.id].arrival||a.id-b.id);
@@ -80,7 +84,11 @@ export function simulate(input:Config,options:SimulationOptions={}):Result{
   let task=t>=600&&t<720?10*c.demand:0;
   if(c.flexible)task=t>=720&&t<960&&taskEnergy<20*c.demand?Math.min(10*c.demand,(20*c.demand-taskEnergy)*60):0;
   taskEnergy+=task/60;
-  const building=base+hvac+task,limit=c.preset==='capacity'&&t>=540&&t<960?Math.min(50,c.grid):c.grid;
+  const modeledBuilding=base+hvac+task;
+  const environment=options.environment?.(t,{building:modeledBuilding,solar});
+  const building=environment&&Number.isFinite(environment.building)?Math.max(0,environment.building):modeledBuilding;
+  if(environment&&Number.isFinite(environment.solar))solar=Math.max(0,Math.min(c.solar,environment.solar));
+  const limit=c.preset==='capacity'&&t>=540&&t<960?Math.min(50,c.grid):c.grid;
   let bp=0;
   // Storage starts at 50 kWh and never discharges below that boundary; comparison has no free initial depletion.
   if(c.battery){if(solar>building)bp=-Math.min(50,solar-building,(90-battery)*60/.95);else if(building>limit-5)bp=Math.min(50,building-limit+5,(battery-50)*60*.95);}
@@ -112,6 +120,9 @@ export function simulate(input:Config,options:SimulationOptions={}):Result{
    const adjusted=options.powerTransform({time:t,vehicles:observedVehicles,available,budget:Math.max(0,limit-3-building+solar+bp),building,solar,batteryPower:bp,batteryKwh:battery,limit,price:price(t),outdoor,irradiance,config:c},planned);
    for(const s of available){const v=adjusted[s.id];if(v&&Number.isFinite(v.power)){s.power=Math.min(s.power,Math.max(0,v.power));s.reason=v.reason;if(custom)custom[s.id]={power:s.power,reason:v.reason};}}
   }
+  // IEC 61851-style minimum is opt-in for the specialist fixture. A final partial
+  // minute is permitted to finish a request; otherwise use stop/start, not <6 A.
+  if(options.minimumChargingKw)for(const s of available)if(s.power>0&&s.power<options.minimumChargingKw&&cap(s)>s.power+1e-8)s.power=0;
   for(const s of eligible){const v=vehicles[s.id];if(faulty(s)){s.status='Fault';s.reason='Charger unavailable until 13:00';}else if(sleeping(s)){s.status='Sleeping';s.reason='Vehicle not accepting power · recovery 12:00';}else{s.status=s.power>0?'Charging':'Paused';s.reason=custom?.[s.id]?.reason??(s.power>0?(policy==='ems'?'Allocated by departure urgency and site headroom':policy==='balanced'?'Fair share of current site headroom':'Immediate maximum charging'):'Waiting for available site capacity');}const add=s.power*.9/60;s.delivered+=add;delivered+=add;if(s.delivered>=v.need-.00001){s.status='Ready';s.reason='Requested energy delivered · parked until departure';}}
   for(const s of cars){const v=vehicles[s.id];if(t>=s.parkedAt+2&&s.parkedAt>=0&&t<v.departure&&s.delivered>=v.need-.00001)s.status='Ready';}
   const ev=cars.reduce((a,s)=>a+s.power,0);

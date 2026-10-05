@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +22,7 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Compile and test simulation invariants
         run: |
-          npx tsc lib/twin/engine.ts lib/twin/optimizer.ts lib/twin/comparison.ts lib/twin/annual.ts lib/twin/backtest.ts lib/twin/ml.ts lib/twin/replay.ts lib/twin/flexibility.ts lib/twin/selector.ts lib/twin/forecast.ts lib/twin/physical-forecast.ts --target es2022 --module commonjs --strict --skipLibCheck --outDir .test-build
+          npx tsc lib/twin/engine.ts lib/twin/optimizer.ts lib/twin/comparison.ts lib/twin/annual.ts lib/twin/backtest.ts lib/twin/ml.ts lib/twin/replay.ts lib/twin/flexibility.ts lib/twin/selector.ts lib/twin/forecast.ts lib/twin/physical-forecast.ts lib/twin/specialist-controller.ts --target es2022 --module commonjs --strict --skipLibCheck --outDir .test-build
           node --test tests/comparison.cjs
           node --test tests/ml-training.cjs
           node --test tests/replay.cjs
@@ -30,6 +30,7 @@ jobs:
           node --test tests/selector.cjs
           node --test tests/forecast.cjs
           node --test tests/physical-forecast.cjs
+          node --test tests/specialists.cjs
       - name: Production static build
         env:
           NEXT_PUBLIC_BASE_PATH: /ev-flexibility-twin

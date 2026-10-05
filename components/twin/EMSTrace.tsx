@@ -1,12 +1,12 @@
 import {Activity,AlertTriangle,CheckCircle2,CloudSun,Radio,ShieldCheck,Workflow} from 'lucide-react';
 import {clock,type Config,type Frame,type Vehicle} from '@/lib/twin/engine';
 
-type Props={time:number;config:Config;frame:Frame;previous?:Frame;vehicles:Vehicle[];strategy:string};
+type Props={time:number;config:Config;frame:Frame;previous?:Frame;vehicles:Vehicle[];strategy:string;remoteUnavailable?:boolean};
 const n=(value:number,d=1)=>value.toLocaleString('en-GB',{minimumFractionDigits:d,maximumFractionDigits:d});
 
-export default function EMSTrace({time,config,frame,previous,vehicles,strategy}:Props){
+export default function EMSTrace({time,config,frame,previous,vehicles,strategy,remoteUnavailable}:Props){
  const minute=Math.floor(time);
- const remoteOffline=config.preset==='offline'&&minute>=600&&minute<720;
+ const remoteOffline=Boolean(remoteUnavailable)||(config.preset==='offline'&&minute>=600&&minute<720);
  const activeConstraint=config.preset==='capacity'&&minute>=540&&minute<960;
  const solarCorrection=config.preset==='cloud'&&minute>=720&&minute<900;
  const faultWindow=config.preset==='fault'&&minute>=600&&minute<780;

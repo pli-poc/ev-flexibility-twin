@@ -1,6 +1,6 @@
 # EV Flexibility Twin — AI & Market Simulation
 
-Standalone synthetic EV charging, AI training and virtual flexibility markets. Open `/flexibility/` for the market lab, `/strategy-training/` for cost-sensitive learning across all six strategies with a fresh-seed benchmark, and `/training/` for the independent single-teacher charging MLP. See [flexibility model and limitations](docs/flexibility-markets.md) and [six-strategy learning](docs/strategy-learning.md).
+Standalone synthetic EV charging, AI training and virtual flexibility markets. The new [specialised AI lab](https://pli-poc.github.io/ev-flexibility-twin/specialists/) trains four separate neural predictors, evaluates shared-controller ablations and replays the same scenario in the 3D twin. Choose **Load reference experiment** for the saved 30-scenario run. [Full optimisation plan](docs/complete-optimisation-plan.md) · [results and limitations](docs/specialised-ai-controller.md). AI reduces unmet energy by 23.25% against the same planner without learning on the new recurring-pattern fixture; its advantage over the best fixed EMS is inconclusive, so the validation-selected default remains EMS. Open `/flexibility/` for the market lab, `/strategy-training/` for cost-sensitive learning across all six strategies with a fresh-seed benchmark, and `/training/` for the independent single-teacher charging MLP. See [flexibility model and limitations](docs/flexibility-markets.md) and [six-strategy learning](docs/strategy-learning.md).
 
 # EV Energy Twin AI EMS
 

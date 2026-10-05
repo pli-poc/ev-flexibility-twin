@@ -25,3 +25,6 @@
 /* Optional locally trained policy controls and seasonal day input. */
 .ml-control{margin:-2px 0 19px;padding:12px;border:1px solid #345147;border-radius:7px;background:linear-gradient(125deg,#142822,#121f26)}.ml-control-head{display:flex;align-items:center;gap:9px}.ml-control-head>svg{color:#70e3bb;width:18px;height:18px}.ml-control-head b{display:block;font-size:13px;color:#dceee7}.ml-control-head small{display:block;margin-top:4px;font-size:10px;color:#91aa9f}.ml-control .toggle-line{font-size:12px;margin:12px 0 8px;color:#b8cac4}.ml-control>small{display:block;font-size:10px;line-height:1.5;color:#8aa397}.ml-control>a{display:inline-flex;align-items:center;gap:7px;font-size:11px;text-decoration:none;color:#8ee3c2;margin-top:11px}.ml-control>a svg{width:14px;height:14px}.optimizer-live{color:#70e3bb}
 @media(max-width:760px){.header-actions .btn:not(.primary){padding:7px 8px;font-size:12px}.ml-control{grid-column:1/-1}}
+
+/* Keep navigation and branding readable as independent labs are added. */
+.shell .header{height:auto;min-height:78px;padding-top:12px;padding-bottom:12px}.header .brand{flex-shrink:0}.header .brandname,.header h2,.header-actions .btn{white-space:nowrap}.header-actions{flex-wrap:wrap;justify-content:flex-end}
