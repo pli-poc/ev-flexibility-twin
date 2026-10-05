@@ -1,0 +1,336 @@
+@prefix aiems: <https://w3id.org/ev-energy-twin/ai-ems#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://w3id.org/ev-energy-twin/ai-ems> a owl:Ontology ;
+  rdfs:label "EV Energy Twin AI EMS vocabulary"@en ;
+  rdfs:comment "Protocol-neutral semantic vocabulary for energy management inputs, decisions, commands and measured feedback. Version 0.2; standalone from ChargeWeave."@en ;
+  owl:versionInfo "0.2.0" .
+
+# Assets and service context
+aiems:EnergyAsset a owl:Class ; rdfs:label "Energy asset"@en .
+aiems:Site a owl:Class ; rdfs:subClassOf aiems:EnergyAsset ; rdfs:label "Site"@en .
+aiems:GridConnection a owl:Class ; rdfs:subClassOf aiems:EnergyAsset ; rdfs:label "Grid connection"@en .
+aiems:PVArray a owl:Class ; rdfs:subClassOf aiems:EnergyAsset ; rdfs:label "Photovoltaic array"@en .
+aiems:StationaryBattery a owl:Class ; rdfs:subClassOf aiems:EnergyAsset ; rdfs:label "Stationary battery"@en .
+aiems:EVSE a owl:Class ; rdfs:subClassOf aiems:EnergyAsset ; rdfs:label "Electric vehicle supply equipment"@en .
+aiems:Connector a owl:Class ; rdfs:label "Charging connector"@en .
+aiems:Vehicle a owl:Class ; rdfs:label "Vehicle"@en .
+aiems:ChargingSession a owl:Class ; rdfs:label "Charging session"@en .
+aiems:BuildingLoad a owl:Class ; rdfs:subClassOf aiems:EnergyAsset ; rdfs:label "Building load"@en .
+aiems:ControllableLoad a owl:Class ; rdfs:subClassOf aiems:BuildingLoad ; rdfs:label "Controllable building load"@en .
+aiems:Inverter a owl:Class ; rdfs:subClassOf aiems:EnergyAsset ; rdfs:label "Power inverter"@en .
+aiems:GridMeter a owl:Class ; rdfs:subClassOf aiems:EnergyAsset ; rdfs:label "Grid connection meter"@en .
+
+# Signals, source data, observations and constraints
+aiems:DataSource a owl:Class ; rdfs:label "Data source"@en .
+aiems:Sensor a owl:Class ; rdfs:label "Physical or virtual sensor"@en .
+aiems:SpatialLocation a owl:Class ; rdfs:label "Spatial location"@en .
+aiems:ExternalSignal a owl:Class ; rdfs:label "External energy signal"@en .
+aiems:OpenADRSignal a owl:Class ; rdfs:subClassOf aiems:ExternalSignal ; rdfs:label "OpenADR signal"@en .
+aiems:MarketPriceSignal a owl:Class ; rdfs:subClassOf aiems:ExternalSignal ; rdfs:label "Market or tariff price signal"@en .
+aiems:PriceInterval a owl:Class ; rdfs:label "Time-bounded energy price"@en .
+aiems:GridConstraintSignal a owl:Class ; rdfs:subClassOf aiems:ExternalSignal ; rdfs:label "Grid constraint signal"@en .
+aiems:WeatherSignal a owl:Class ; rdfs:subClassOf aiems:ExternalSignal ; rdfs:label "Weather signal"@en .
+aiems:Observation a owl:Class ; rdfs:label "Measured or reported observation"@en .
+aiems:Forecast a owl:Class ; rdfs:subClassOf aiems:Observation ; rdfs:label "Forecast observation"@en .
+aiems:WeatherObservation a owl:Class ; rdfs:subClassOf aiems:Observation ; rdfs:label "Weather observation"@en .
+aiems:WeatherForecast a owl:Class ; rdfs:subClassOf aiems:Forecast ; rdfs:label "Weather forecast"@en .
+aiems:EnergyObservation a owl:Class ; rdfs:subClassOf aiems:Observation ; rdfs:label "Energy-system observation"@en .
+aiems:PVObservation a owl:Class ; rdfs:subClassOf aiems:EnergyObservation ; rdfs:label "Photovoltaic observation"@en .
+aiems:BuildingLoadObservation a owl:Class ; rdfs:subClassOf aiems:EnergyObservation ; rdfs:label "Building-load observation"@en .
+aiems:GridObservation a owl:Class ; rdfs:subClassOf aiems:EnergyObservation ; rdfs:label "Grid observation"@en .
+aiems:BatteryObservation a owl:Class ; rdfs:subClassOf aiems:EnergyObservation ; rdfs:label "Battery observation"@en .
+aiems:EVSEObservation a owl:Class ; rdfs:subClassOf aiems:EnergyObservation ; rdfs:label "EVSE observation"@en .
+aiems:OperatingConstraint a owl:Class ; rdfs:label "Operating constraint"@en .
+aiems:PowerLimit a owl:Class ; rdfs:subClassOf aiems:OperatingConstraint ; rdfs:label "Power limit"@en .
+aiems:EnergyTarget a owl:Class ; rdfs:subClassOf aiems:OperatingConstraint ; rdfs:label "Energy target"@en .
+aiems:DepartureDeadline a owl:Class ; rdfs:subClassOf aiems:OperatingConstraint ; rdfs:label "Departure deadline"@en .
+aiems:SitePolicy a owl:Class ; rdfs:label "Site operating policy"@en .
+aiems:ComfortConstraint a owl:Class ; rdfs:subClassOf aiems:OperatingConstraint ; rdfs:label "Building comfort constraint"@en .
+aiems:OperatingSchedule a owl:Class ; rdfs:label "Asset or load operating schedule"@en .
+aiems:CustomerServiceRequirement a owl:Class ; rdfs:label "Customer charging-service requirement"@en .
+aiems:ConsentPolicy a owl:Class ; rdfs:label "Data or control consent policy"@en .
+aiems:AvailabilityWindow a owl:Class ; rdfs:label "Asset or service availability window"@en .
+aiems:SiteProtectionState a owl:Class ; rdfs:label "Site local protection state"@en .
+
+# Assessment and scheduling
+aiems:EventAssessment a owl:Class ; rdfs:label "Signal or event assessment"@en .
+aiems:FlexibilityAssessment a owl:Class ; rdfs:subClassOf aiems:EventAssessment ; rdfs:label "Flexibility assessment"@en .
+aiems:FlexibilityResponse a owl:Class ; rdfs:label "Response to an external flexibility event"@en .
+aiems:StrategyRecommendation a owl:Class ; rdfs:label "Strategy recommendation"@en .
+aiems:EMSPlan a owl:Class ; rdfs:label "EMS plan"@en .
+aiems:PowerAllocation a owl:Class ; rdfs:label "Per-session power allocation"@en .
+aiems:AssetDispatch a owl:Class ; rdfs:label "Non-vehicle asset dispatch request"@en .
+aiems:ServiceOutcome a owl:Class ; rdfs:label "Charging-service outcome or projection"@en .
+
+# Control boundary, protocol response and observed outcome
+aiems:CommandIntent a owl:Class ; rdfs:label "Protocol-neutral charger command intent"@en .
+aiems:CommandAcknowledgement a owl:Class ; rdfs:label "Charger command acknowledgement"@en .
+aiems:ChargerFeedback a owl:Class ; rdfs:label "Charger or vehicle feedback"@en .
+aiems:MeterReading a owl:Class ; rdfs:subClassOf aiems:ChargerFeedback ; rdfs:label "Charger meter reading"@en .
+aiems:OperationalStateEvent a owl:Class ; rdfs:subClassOf aiems:ChargerFeedback ; rdfs:label "Equipment operational-state event"@en .
+aiems:FaultEvent a owl:Class ; rdfs:subClassOf aiems:ChargerFeedback ; rdfs:label "Equipment fault event"@en .
+aiems:CapabilityDeclaration a owl:Class ; rdfs:subClassOf aiems:AdapterCapability ; rdfs:label "Equipment capability declaration"@en .
+aiems:CommandLifecycleEvent a owl:Class ; rdfs:label "Command lifecycle event"@en .
+aiems:Reconciliation a owl:Class ; rdfs:label "Planned, acknowledged and measured reconciliation"@en .
+aiems:AssessmentRun a owl:Class ; rdfs:label "Assessment or model execution record"@en .
+
+# Interoperability and deterministic virtual-device evidence
+aiems:BoundaryAdapter a owl:Class ; rdfs:label "External boundary adapter"@en .
+aiems:VirtualAdapter a owl:Class ; rdfs:subClassOf aiems:BoundaryAdapter ; rdfs:label "Virtual boundary adapter"@en .
+aiems:LiveAdapter a owl:Class ; rdfs:subClassOf aiems:BoundaryAdapter ; rdfs:label "Live boundary adapter"@en .
+aiems:AdapterProfile a owl:Class ; rdfs:label "Versioned adapter profile"@en .
+aiems:StandardReference a owl:Class ; rdfs:label "Standards publication reference"@en .
+aiems:ProtocolExchange a owl:Class ; rdfs:label "External protocol exchange"@en .
+aiems:AdapterCapability a owl:Class ; rdfs:label "Adapter capability"@en .
+aiems:ConformanceScenario a owl:Class ; rdfs:label "Adapter conformance scenario"@en .
+aiems:ConformanceResult a owl:Class ; rdfs:label "Adapter conformance result"@en .
+aiems:SimulationRun a owl:Class ; rdfs:label "Reproducible simulation run"@en .
+
+# Relationships
+aiems:hasAsset a owl:ObjectProperty ; rdfs:domain aiems:Site ; rdfs:range aiems:EnergyAsset .
+aiems:connectedTo a owl:ObjectProperty ; rdfs:domain aiems:EVSE ; rdfs:range aiems:GridConnection .
+aiems:hasConnector a owl:ObjectProperty ; rdfs:domain aiems:EVSE ; rdfs:range aiems:Connector .
+aiems:usesEVSE a owl:ObjectProperty ; rdfs:domain aiems:ChargingSession ; rdfs:range aiems:EVSE .
+aiems:servesVehicle a owl:ObjectProperty ; rdfs:domain aiems:ChargingSession ; rdfs:range aiems:Vehicle .
+aiems:atSite a owl:ObjectProperty ; rdfs:range aiems:Site .
+aiems:aboutAsset a owl:ObjectProperty ; rdfs:domain aiems:Observation ; rdfs:range aiems:EnergyAsset .
+aiems:aboutSession a owl:ObjectProperty ; rdfs:domain aiems:Observation ; rdfs:range aiems:ChargingSession .
+aiems:observedBy a owl:ObjectProperty ; rdfs:domain aiems:Observation ; rdfs:range aiems:Sensor .
+aiems:locatedAt a owl:ObjectProperty ; rdfs:range aiems:SpatialLocation .
+aiems:providedBy a owl:ObjectProperty ; rdfs:range aiems:DataSource .
+aiems:assessesSignal a owl:ObjectProperty ; rdfs:domain aiems:EventAssessment ; rdfs:range aiems:ExternalSignal .
+aiems:assessesSite a owl:ObjectProperty ; rdfs:domain aiems:EventAssessment ; rdfs:range aiems:Site .
+aiems:respondsToSignal a owl:ObjectProperty ; rdfs:domain aiems:FlexibilityResponse ; rdfs:range aiems:ExternalSignal .
+aiems:recommendsStrategy a owl:ObjectProperty ; rdfs:domain aiems:StrategyRecommendation .
+aiems:basedOn a owl:ObjectProperty ; rdfs:domain aiems:EMSPlan .
+aiems:hasConstraint a owl:ObjectProperty ; rdfs:domain aiems:EMSPlan ; rdfs:range aiems:OperatingConstraint .
+aiems:hasAllocation a owl:ObjectProperty ; rdfs:domain aiems:EMSPlan ; rdfs:range aiems:PowerAllocation .
+aiems:hasAssetDispatch a owl:ObjectProperty ; rdfs:domain aiems:EMSPlan ; rdfs:range aiems:AssetDispatch .
+aiems:hasEventResponse a owl:ObjectProperty ; rdfs:domain aiems:EMSPlan ; rdfs:range aiems:FlexibilityResponse .
+aiems:targetsEVSE a owl:ObjectProperty ; rdfs:range aiems:EVSE .
+aiems:targetsAsset a owl:ObjectProperty ; rdfs:range aiems:EnergyAsset .
+aiems:targetsEVSE rdfs:subPropertyOf aiems:targetsAsset .
+aiems:targetsSession a owl:ObjectProperty ; rdfs:range aiems:ChargingSession .
+aiems:createsCommand a owl:ObjectProperty ; rdfs:domain aiems:PowerAllocation ; rdfs:range aiems:CommandIntent .
+aiems:acknowledges a owl:ObjectProperty ; rdfs:domain aiems:CommandAcknowledgement ; rdfs:range aiems:CommandIntent .
+aiems:usesAcknowledgement a owl:ObjectProperty ; rdfs:domain aiems:Reconciliation ; rdfs:range aiems:CommandAcknowledgement .
+aiems:respondsTo a owl:ObjectProperty ; rdfs:range aiems:CommandIntent .
+aiems:measuresAsset a owl:ObjectProperty ; rdfs:domain aiems:ChargerFeedback ; rdfs:range aiems:EnergyAsset .
+aiems:measuresSession a owl:ObjectProperty ; rdfs:domain aiems:ChargerFeedback ; rdfs:range aiems:ChargingSession .
+aiems:reconcilesCommand a owl:ObjectProperty ; rdfs:domain aiems:Reconciliation ; rdfs:range aiems:CommandIntent .
+aiems:usesFeedback a owl:ObjectProperty ; rdfs:domain aiems:Reconciliation ; rdfs:range aiems:ChargerFeedback .
+aiems:usesAssessment a owl:ObjectProperty ; rdfs:domain aiems:EMSPlan ; rdfs:range aiems:EventAssessment .
+aiems:hasExecution a owl:ObjectProperty ; rdfs:range aiems:AssessmentRun .
+aiems:usesAdapter a owl:ObjectProperty ; rdfs:domain aiems:SimulationRun ; rdfs:range aiems:BoundaryAdapter .
+aiems:implementsProfile a owl:ObjectProperty ; rdfs:domain aiems:BoundaryAdapter ; rdfs:range aiems:AdapterProfile .
+aiems:referencesStandard a owl:ObjectProperty ; rdfs:domain aiems:AdapterProfile ; rdfs:range aiems:StandardReference .
+aiems:exchangesProtocolMessage a owl:ObjectProperty ; rdfs:domain aiems:BoundaryAdapter ; rdfs:range aiems:ProtocolExchange .
+aiems:mapsCanonicalConcept a owl:ObjectProperty ; rdfs:domain aiems:AdapterProfile .
+aiems:hasCapability a owl:ObjectProperty ; rdfs:range aiems:AdapterCapability .
+aiems:testsProfile a owl:ObjectProperty ; rdfs:domain aiems:ConformanceScenario ; rdfs:range aiems:AdapterProfile .
+aiems:hasConformanceResult a owl:ObjectProperty ; rdfs:domain aiems:ConformanceScenario ; rdfs:range aiems:ConformanceResult .
+aiems:usesScenario a owl:ObjectProperty ; rdfs:domain aiems:SimulationRun .
+aiems:hasInputSnapshot a owl:ObjectProperty ; rdfs:domain aiems:SimulationRun .
+aiems:hasCustomerRequirement a owl:ObjectProperty ; rdfs:domain aiems:ChargingSession ; rdfs:range aiems:CustomerServiceRequirement .
+aiems:governedByConsent a owl:ObjectProperty ; rdfs:range aiems:ConsentPolicy .
+aiems:hasAvailability a owl:ObjectProperty ; rdfs:range aiems:AvailabilityWindow .
+aiems:hasLocalProtectionState a owl:ObjectProperty ; rdfs:domain aiems:Site ; rdfs:range aiems:SiteProtectionState .
+aiems:declaresCapability a owl:ObjectProperty ; rdfs:range aiems:CapabilityDeclaration .
+aiems:hasLifecycleEvent a owl:ObjectProperty ; rdfs:domain aiems:CommandIntent ; rdfs:range aiems:CommandLifecycleEvent .
+aiems:hasFault a owl:ObjectProperty ; rdfs:range aiems:FaultEvent .
+aiems:targetsConnector a owl:ObjectProperty ; rdfs:domain aiems:CommandIntent ; rdfs:range aiems:Connector .
+aiems:encodedForProfile a owl:ObjectProperty ; rdfs:domain aiems:CommandIntent ; rdfs:range aiems:AdapterProfile .
+aiems:hasGridMeter a owl:ObjectProperty ; rdfs:domain aiems:GridConnection ; rdfs:range aiems:GridMeter .
+aiems:hasOperatingSchedule a owl:ObjectProperty ; rdfs:range aiems:OperatingSchedule .
+aiems:hasServiceOutcome a owl:ObjectProperty ; rdfs:domain aiems:EMSPlan ; rdfs:range aiems:ServiceOutcome .
+aiems:outcomeForSession a owl:ObjectProperty ; rdfs:domain aiems:ServiceOutcome ; rdfs:range aiems:ChargingSession .
+
+# Stable identifiers, provenance and time
+aiems:identifier a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:latitude a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:longitude a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:altitudeMeters a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:sourceIdentifier a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:correlationId a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:protocolName a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:protocolVersion a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:sourceRevision a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:observedAt a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+aiems:recordedAt a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+aiems:issuedAt a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+aiems:validFrom a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+aiems:validUntil a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+aiems:forecastFor a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+aiems:forecastHorizonMinutes a owl:DatatypeProperty ; rdfs:range xsd:integer .
+aiems:dataQuality a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:confidence a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:explanation a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:assumption a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:modelOrRuleVersion a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:inputSnapshotId a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:profileIdentifier a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:profileVersion a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:standardIdentifier a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:standardVersion a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:standardEdition a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:profileSubset a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:adapterMode a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:adapterBoundary a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:exchangeDirection a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:messageType a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:exchangeStatus a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:payloadDigest a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:rawEvidenceReference a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:deterministicSeed a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:prngVersion a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:simulatorVersion a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:scenarioFingerprint a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:conformanceStatus a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:expectedResult a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:actualResult a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:externalReference a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:revisionNumber a owl:DatatypeProperty ; rdfs:range xsd:integer .
+aiems:effectiveFrom a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+aiems:effectiveUntil a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+aiems:priorityValue a owl:DatatypeProperty ; rdfs:range xsd:integer .
+aiems:serviceOutcome a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:consentStatus a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:capabilityStatus a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:capabilityName a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:minimumCurrentA a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:maximumCurrentA a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:minimumVoltageV a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:maximumVoltageV a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:nominalPowerFactor a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:connectorFormat a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:phaseMode a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:operationalState a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:faultCode a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:faultSeverity a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:faultDescription a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:commandLifecycleStatus a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:commandAttempt a owl:DatatypeProperty ; rdfs:range xsd:integer .
+aiems:retryAfterSeconds a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:localProtectionMode a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:siteConnectionState a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:tariffComponent a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:priceDirection a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:currencyPerEnergyUnit a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:forecastMember a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:forecastProduct a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:stateOfChargeTarget a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:minimumDepartureEnergyKwh a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:departureTargetSoc a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:meterRegister a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:meterReadingType a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:meterReadingStart a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+aiems:meterReadingEnd a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+aiems:measurementIntervalSeconds a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:communicationStatus a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:staleAfterSeconds a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:expectedImportEnergyKwh a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:expectedExportEnergyKwh a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:expectedEnergyCost a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:expectedRevenue a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:expectedShortfallEnergyKwh a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:scheduleName a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:scheduleStatus a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:targetComfortValue a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:minimumComfortValue a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:maximumComfortValue a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:outcomeStatus a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:quantityKind a owl:DatatypeProperty ; rdfs:range xsd:string .
+
+# Signals, energy quantities, service requirements and asset capabilities
+aiems:signalType a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:eventId a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:eventPriority a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:eventStatus a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:quantityKind a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:numericValue a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:unit a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:uncertainty a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:currency a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:pricePerKwh a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:priceType a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:pricePeriod a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:targetReductionKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:requestedResponseKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:committedResponseKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:responseStatus a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:minimumPowerKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:maximumPowerKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:importLimitKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:exportLimitKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:requestedEnergyKwh a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:requestedDepartureSoc a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:departureAt a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+aiems:arrivalAt a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+aiems:sessionStatus a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:assetStatus a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:ratedPowerKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:connectorStatus a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:stateOfCharge a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:energyCapacityKwh a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:energyReserveKwh a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:ambientTemperatureC a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:relativeHumidityPercent a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:windSpeedMPerS a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:windDirectionDeg a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:precipitationMmPerHour a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:cloudCoverFraction a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:globalHorizontalIrradianceWPerM2 a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:directNormalIrradianceWPerM2 a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:diffuseHorizontalIrradianceWPerM2 a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:pvACPowerKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:pvDCPowerKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:availablePVPowerKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:curtailedPVPowerKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:buildingLoadKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:flexibleLoadKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:gridImportPowerKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:gridExportPowerKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:gridVoltageV a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:gridCurrentA a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:gridFrequencyHz a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:batteryPowerKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:batteryUsableCapacityKwh a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:batteryMaxChargeKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:batteryMaxDischargeKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:chargeEfficiencyFraction a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:dischargeEfficiencyFraction a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:vehicleMaxChargeKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:evseMaxCurrentA a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:evseVoltageV a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:evsePhaseCount a owl:DatatypeProperty ; rdfs:range xsd:integer .
+aiems:powerFactor a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:importExportDirection a owl:DatatypeProperty ; rdfs:range xsd:string .
+
+# Assessments, plans, commands and measured effects
+aiems:urgency a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:impact a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:flexibilityKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:strategyName a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:objective a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:planStatus a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:createdAt a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+aiems:allocatedPowerKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:dispatchPowerKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:dispatchDirection a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:commandId a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:commandAction a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:commandLimitKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:commandStatus a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:acknowledgedAt a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+aiems:acceptedPowerKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:measuredPowerKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:meterEnergyKwh a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:plannedPowerKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:acknowledgedPowerKw a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:deliveredEnergyKwh a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+aiems:deviationKind a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:fallbackReason a owl:DatatypeProperty ; rdfs:range xsd:string .
+aiems:operatorApprovalRequired a owl:DatatypeProperty ; rdfs:range xsd:boolean .

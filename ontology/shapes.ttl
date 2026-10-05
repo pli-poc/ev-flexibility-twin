@@ -1,0 +1,396 @@
+@prefix aiems: <https://w3id.org/ev-energy-twin/ai-ems#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+aiems:ObservationShape a sh:NodeShape ;
+  sh:targetClass aiems:Observation ;
+  sh:property [ sh:path aiems:unit ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:quantityKind ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:observedAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:recordedAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:providedBy ; sh:class aiems:DataSource ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:dataQuality ; sh:in ( "good" "estimated" "stale" "missing" "invalid" ) ; sh:minCount 1 ] ;
+  sh:or (
+    [ sh:property [ sh:path aiems:dataQuality ; sh:hasValue "missing" ] ; sh:property [ sh:path aiems:numericValue ; sh:maxCount 0 ] ]
+    [ sh:property [ sh:path aiems:dataQuality ; sh:in ( "good" "estimated" "stale" "invalid" ) ] ; sh:property [ sh:path aiems:numericValue ; sh:datatype xsd:decimal ; sh:minCount 1 ] ]
+  ) .
+
+aiems:ForecastShape a sh:NodeShape ;
+  sh:targetClass aiems:Forecast ;
+  sh:property [ sh:path aiems:issuedAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:forecastFor ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:confidence ; sh:datatype xsd:decimal ; sh:minCount 1 ; sh:minInclusive 0 ; sh:maxInclusive 1 ] .
+
+aiems:WeatherObservationShape a sh:NodeShape ;
+  sh:targetClass aiems:WeatherObservation ;
+  sh:property [ sh:path aiems:aboutAsset ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:observedBy ; sh:class aiems:Sensor ] ;
+  sh:property [ sh:path aiems:locatedAt ; sh:class aiems:SpatialLocation ] ;
+  sh:property [ sh:path aiems:quantityKind ; sh:in ( "ambient-temperature" "relative-humidity" "wind-speed" "wind-direction" "precipitation-rate" "cloud-cover" "global-horizontal-irradiance" "direct-normal-irradiance" "diffuse-horizontal-irradiance" ) ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:relativeHumidityPercent ; sh:datatype xsd:decimal ; sh:minInclusive 0 ; sh:maxInclusive 100 ] ;
+  sh:property [ sh:path aiems:windSpeedMPerS ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:windDirectionDeg ; sh:datatype xsd:decimal ; sh:minInclusive 0 ; sh:maxExclusive 360 ] ;
+  sh:property [ sh:path aiems:precipitationMmPerHour ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:cloudCoverFraction ; sh:datatype xsd:decimal ; sh:minInclusive 0 ; sh:maxInclusive 1 ] ;
+  sh:property [ sh:path aiems:globalHorizontalIrradianceWPerM2 ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:directNormalIrradianceWPerM2 ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:diffuseHorizontalIrradianceWPerM2 ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] .
+
+aiems:WeatherForecastShape a sh:NodeShape ;
+  sh:targetClass aiems:WeatherForecast ;
+  sh:property [ sh:path aiems:issuedAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:forecastFor ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:quantityKind ; sh:minCount 1 ] .
+
+aiems:BatteryObservationShape a sh:NodeShape ;
+  sh:targetClass aiems:BatteryObservation ;
+  sh:property [ sh:path aiems:aboutAsset ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:quantityKind ; sh:in ( "battery-power" "state-of-charge" "stored-energy" "available-charge-power" "available-discharge-power" ) ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:stateOfCharge ; sh:datatype xsd:decimal ; sh:minInclusive 0 ; sh:maxInclusive 1 ] ;
+  sh:property [ sh:path aiems:batteryUsableCapacityKwh ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:batteryMaxChargeKw ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:batteryMaxDischargeKw ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:chargeEfficiencyFraction ; sh:datatype xsd:decimal ; sh:minInclusive 0 ; sh:maxInclusive 1 ] ;
+  sh:property [ sh:path aiems:dischargeEfficiencyFraction ; sh:datatype xsd:decimal ; sh:minInclusive 0 ; sh:maxInclusive 1 ] .
+
+aiems:EnergyObservationShape a sh:NodeShape ;
+  sh:targetClass aiems:EnergyObservation ;
+  sh:property [ sh:path aiems:importExportDirection ; sh:in ( "import" "export" "consumption" "generation" "charge" "discharge" "not-applicable" ) ] ;
+  sh:property [ sh:path aiems:powerFactor ; sh:datatype xsd:decimal ; sh:minInclusive -1 ; sh:maxInclusive 1 ] ;
+  sh:property [ sh:path aiems:pvACPowerKw ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:pvDCPowerKw ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:availablePVPowerKw ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:curtailedPVPowerKw ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:buildingLoadKw ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:flexibleLoadKw ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:gridVoltageV ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:gridCurrentA ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:gridFrequencyHz ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:batteryPowerKw ; sh:datatype xsd:decimal ] ;
+  sh:property [ sh:path aiems:vehicleMaxChargeKw ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] .
+
+aiems:PVObservationShape a sh:NodeShape ;
+  sh:targetClass aiems:PVObservation ;
+  sh:property [ sh:path aiems:aboutAsset ; sh:minCount 1 ] ;
+  sh:or (
+    [ sh:property [ sh:path aiems:pvACPowerKw ; sh:minCount 1 ] ]
+    [ sh:property [ sh:path aiems:pvDCPowerKw ; sh:minCount 1 ] ]
+    [ sh:property [ sh:path aiems:availablePVPowerKw ; sh:minCount 1 ] ]
+  ) .
+
+aiems:BuildingLoadObservationShape a sh:NodeShape ;
+  sh:targetClass aiems:BuildingLoadObservation ;
+  sh:property [ sh:path aiems:aboutAsset ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:buildingLoadKw ; sh:datatype xsd:decimal ; sh:minCount 1 ; sh:minInclusive 0 ] .
+
+aiems:GridObservationShape a sh:NodeShape ;
+  sh:targetClass aiems:GridObservation ;
+  sh:property [ sh:path aiems:aboutAsset ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:importExportDirection ; sh:in ( "import" "export" "not-applicable" ) ; sh:minCount 1 ] ;
+  sh:or (
+    [ sh:property [ sh:path aiems:gridImportPowerKw ; sh:minCount 1 ] ]
+    [ sh:property [ sh:path aiems:gridExportPowerKw ; sh:minCount 1 ] ]
+  ) .
+
+aiems:EVSEObservationShape a sh:NodeShape ;
+  sh:targetClass aiems:EVSEObservation ;
+  sh:property [ sh:path aiems:aboutAsset ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:quantityKind ; sh:in ( "evse-active-power" "connector-state" "evse-availability" "evse-fault" ) ; sh:minCount 1 ] .
+
+aiems:AssetTopologyShape a sh:NodeShape ;
+  sh:targetClass aiems:Site ;
+  sh:property [ sh:path aiems:identifier ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:hasAsset ; sh:class aiems:EnergyAsset ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:hasLocalProtectionState ; sh:class aiems:SiteProtectionState ; sh:minCount 1 ] .
+
+aiems:GridConnectionShape a sh:NodeShape ;
+  sh:targetClass aiems:GridConnection ;
+  sh:property [ sh:path aiems:importLimitKw ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:exportLimitKw ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:siteConnectionState ; sh:in ( "connected" "disconnected" "limited" "unknown" ) ] .
+
+aiems:SpatialLocationShape a sh:NodeShape ;
+  sh:targetClass aiems:SpatialLocation ;
+  sh:property [ sh:path aiems:identifier ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:latitude ; sh:datatype xsd:decimal ; sh:minInclusive -90 ; sh:maxInclusive 90 ] ;
+  sh:property [ sh:path aiems:longitude ; sh:datatype xsd:decimal ; sh:minInclusive -180 ; sh:maxInclusive 180 ] .
+
+aiems:EVSECapabilityShape a sh:NodeShape ;
+  sh:targetClass aiems:EVSE ;
+  sh:property [ sh:path aiems:hasConnector ; sh:class aiems:Connector ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:ratedPowerKw ; sh:datatype xsd:decimal ; sh:minCount 1 ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:evseMaxCurrentA ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:evseVoltageV ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:evsePhaseCount ; sh:datatype xsd:integer ; sh:minInclusive 1 ; sh:maxInclusive 3 ] .
+
+aiems:CapabilityDeclarationShape a sh:NodeShape ;
+  sh:targetClass aiems:CapabilityDeclaration ;
+  sh:property [ sh:path aiems:capabilityName ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:capabilityStatus ; sh:in ( "supported" "unsupported" "unknown" ) ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:observedAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] .
+
+aiems:CustomerServiceRequirementShape a sh:NodeShape ;
+  sh:targetClass aiems:CustomerServiceRequirement ;
+  sh:property [ sh:path aiems:departureAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:priorityValue ; sh:datatype xsd:integer ; sh:minInclusive 0 ] ;
+  sh:or (
+    [ sh:property [ sh:path aiems:minimumDepartureEnergyKwh ; sh:datatype xsd:decimal ; sh:minCount 1 ; sh:minInclusive 0 ] ]
+    [ sh:property [ sh:path aiems:departureTargetSoc ; sh:datatype xsd:decimal ; sh:minCount 1 ; sh:minInclusive 0 ; sh:maxInclusive 1 ] ]
+  ) .
+
+aiems:ComfortConstraintShape a sh:NodeShape ;
+  sh:targetClass aiems:ComfortConstraint ;
+  sh:property [ sh:path aiems:minimumComfortValue ; sh:datatype xsd:decimal ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:maximumComfortValue ; sh:datatype xsd:decimal ; sh:minCount 1 ] .
+
+aiems:OperatingScheduleShape a sh:NodeShape ;
+  sh:targetClass aiems:OperatingSchedule ;
+  sh:property [ sh:path aiems:scheduleName ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:validFrom ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:validUntil ; sh:datatype xsd:dateTime ; sh:minCount 1 ] .
+
+aiems:ConsentPolicyShape a sh:NodeShape ;
+  sh:targetClass aiems:ConsentPolicy ;
+  sh:property [ sh:path aiems:consentStatus ; sh:in ( "granted" "denied" "withdrawn" "not-required" "unknown" ) ; sh:minCount 1 ] .
+
+aiems:SiteProtectionStateShape a sh:NodeShape ;
+  sh:targetClass aiems:SiteProtectionState ;
+  sh:property [ sh:path aiems:localProtectionMode ; sh:in ( "normal" "islanded" "emergency" "load-shed" "unknown" ) ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:observedAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] .
+
+aiems:AdapterProfileShape a sh:NodeShape ;
+  sh:targetClass aiems:AdapterProfile ;
+  sh:property [ sh:path aiems:profileIdentifier ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:profileVersion ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:profileSubset ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:referencesStandard ; sh:class aiems:StandardReference ; sh:minCount 1 ] .
+
+aiems:StandardReferenceShape a sh:NodeShape ;
+  sh:targetClass aiems:StandardReference ;
+  sh:property [ sh:path aiems:standardIdentifier ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:standardVersion ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:standardEdition ; sh:datatype xsd:string ; sh:minCount 1 ] .
+
+aiems:ConformanceScenarioShape a sh:NodeShape ;
+  sh:targetClass aiems:ConformanceScenario ;
+  sh:property [ sh:path aiems:identifier ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:testsProfile ; sh:class aiems:AdapterProfile ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:expectedResult ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:hasConformanceResult ; sh:class aiems:ConformanceResult ; sh:minCount 1 ] .
+
+aiems:ConformanceResultShape a sh:NodeShape ;
+  sh:targetClass aiems:ConformanceResult ;
+  sh:property [ sh:path aiems:conformanceStatus ; sh:in ( "passed" "failed" "blocked" "not-run" ) ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:actualResult ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:createdAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] .
+
+aiems:BoundaryAdapterShape a sh:NodeShape ;
+  sh:targetClass aiems:BoundaryAdapter ;
+  sh:property [ sh:path aiems:adapterBoundary ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:adapterMode ; sh:in ( "virtual" "replay" "shadow" "live" ) ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:implementsProfile ; sh:class aiems:AdapterProfile ; sh:minCount 1 ] .
+
+aiems:SimulationRunShape a sh:NodeShape ;
+  sh:targetClass aiems:SimulationRun ;
+  sh:property [ sh:path aiems:identifier ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:createdAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:scenarioFingerprint ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:deterministicSeed ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:prngVersion ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:simulatorVersion ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:usesAdapter ; sh:class aiems:BoundaryAdapter ; sh:minCount 1 ] .
+
+aiems:ProtocolExchangeShape a sh:NodeShape ;
+  sh:targetClass aiems:ProtocolExchange ;
+  sh:property [ sh:path aiems:messageType ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:exchangeDirection ; sh:in ( "inbound" "outbound" ) ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:exchangeStatus ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:recordedAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] .
+
+aiems:OperationalStateEventShape a sh:NodeShape ;
+  sh:targetClass aiems:OperationalStateEvent ;
+  sh:property [ sh:path aiems:measuresAsset ; sh:class aiems:EnergyAsset ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:operationalState ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:observedAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:providedBy ; sh:class aiems:DataSource ; sh:minCount 1 ] .
+
+aiems:FaultEventShape a sh:NodeShape ;
+  sh:targetClass aiems:FaultEvent ;
+  sh:property [ sh:path aiems:measuresAsset ; sh:class aiems:EnergyAsset ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:faultCode ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:faultSeverity ; sh:in ( "info" "warning" "error" "critical" ) ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:observedAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:providedBy ; sh:class aiems:DataSource ; sh:minCount 1 ] .
+
+aiems:CommandLifecycleEventShape a sh:NodeShape ;
+  sh:targetClass aiems:CommandLifecycleEvent ;
+  sh:property [ sh:path aiems:commandLifecycleStatus ; sh:in ( "created" "sent" "accepted" "rejected" "unknown" "expired" "cancelled" "timed-out" "superseded" ) ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:recordedAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:correlationId ; sh:datatype xsd:string ; sh:minCount 1 ] .
+
+aiems:PriceIntervalShape a sh:NodeShape ;
+  sh:targetClass aiems:PriceInterval ;
+  sh:property [ sh:path aiems:pricePerKwh ; sh:datatype xsd:decimal ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:currency ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:currencyPerEnergyUnit ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:priceType ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:priceDirection ; sh:in ( "import" "export" "bidirectional" "not-applicable" ) ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:pricePeriod ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:validFrom ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:validUntil ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:providedBy ; sh:class aiems:DataSource ; sh:minCount 1 ] .
+
+aiems:OpenADRSignalShape a sh:NodeShape ;
+  sh:targetClass aiems:OpenADRSignal ;
+  sh:property [ sh:path aiems:eventId ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:signalType ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:issuedAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:validFrom ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:validUntil ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:eventStatus ; sh:in ( "active" "updated" "cancelled" "completed" ) ; sh:minCount 1 ] .
+
+aiems:ChargingSessionShape a sh:NodeShape ;
+  sh:targetClass aiems:ChargingSession ;
+  sh:property [ sh:path aiems:identifier ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:arrivalAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:departureAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:requestedEnergyKwh ; sh:datatype xsd:decimal ; sh:minCount 1 ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:sessionStatus ; sh:datatype xsd:string ; sh:minCount 1 ] .
+
+aiems:EventAssessmentShape a sh:NodeShape ;
+  sh:targetClass aiems:EventAssessment ;
+  sh:property [ sh:path aiems:assessesSignal ; sh:class aiems:ExternalSignal ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:observedAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:urgency ; sh:in ( "low" "medium" "high" "critical" ) ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:impact ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:flexibilityKw ; sh:datatype xsd:decimal ; sh:minCount 1 ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:confidence ; sh:datatype xsd:decimal ; sh:minCount 1 ; sh:minInclusive 0 ; sh:maxInclusive 1 ] ;
+  sh:property [ sh:path aiems:explanation ; sh:datatype xsd:string ; sh:minCount 1 ] .
+
+aiems:FlexibilityResponseShape a sh:NodeShape ;
+  sh:targetClass aiems:FlexibilityResponse ;
+  sh:property [ sh:path aiems:respondsToSignal ; sh:class aiems:ExternalSignal ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:requestedResponseKw ; sh:datatype xsd:decimal ; sh:minCount 1 ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:committedResponseKw ; sh:datatype xsd:decimal ; sh:minCount 1 ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:responseStatus ; sh:in ( "accepted" "partial" "rejected" "pending" "cancelled" ) ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:issuedAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] .
+
+aiems:EMSPlanShape a sh:NodeShape ;
+  sh:targetClass aiems:EMSPlan ;
+  sh:property [ sh:path aiems:identifier ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:createdAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:inputSnapshotId ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:strategyName ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:planStatus ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:hasAllocation ; sh:class aiems:PowerAllocation ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:expectedImportEnergyKwh ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:expectedExportEnergyKwh ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:expectedShortfallEnergyKwh ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:expectedEnergyCost ; sh:datatype xsd:decimal ] ;
+  sh:property [ sh:path aiems:currency ; sh:datatype xsd:string ] ;
+  sh:property [ sh:path aiems:hasServiceOutcome ; sh:class aiems:ServiceOutcome ] .
+
+aiems:ServiceOutcomeShape a sh:NodeShape ;
+  sh:targetClass aiems:ServiceOutcome ;
+  sh:property [ sh:path aiems:outcomeForSession ; sh:class aiems:ChargingSession ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:outcomeStatus ; sh:in ( "projected" "met" "partial" "not-met" "unknown" ) ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:expectedShortfallEnergyKwh ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] .
+
+aiems:PowerAllocationShape a sh:NodeShape ;
+  sh:targetClass aiems:PowerAllocation ;
+  sh:property [ sh:path aiems:targetsEVSE ; sh:class aiems:EVSE ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:targetsSession ; sh:class aiems:ChargingSession ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:allocatedPowerKw ; sh:datatype xsd:decimal ; sh:minCount 1 ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:validFrom ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:validUntil ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:createsCommand ; sh:class aiems:CommandIntent ; sh:minCount 1 ] .
+
+aiems:AssetDispatchShape a sh:NodeShape ;
+  sh:targetClass aiems:AssetDispatch ;
+  sh:property [ sh:path aiems:targetsAsset ; sh:class aiems:EnergyAsset ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:dispatchPowerKw ; sh:datatype xsd:decimal ; sh:minCount 1 ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:dispatchDirection ; sh:in ( "charge" "discharge" "curtail" "export" "hold" ) ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:validFrom ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:validUntil ; sh:datatype xsd:dateTime ; sh:minCount 1 ] .
+
+aiems:CommandIntentShape a sh:NodeShape ;
+  sh:targetClass aiems:CommandIntent ;
+  sh:property [ sh:path aiems:commandId ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:correlationId ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:targetsEVSE ; sh:class aiems:EVSE ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:commandAction ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:commandLimitKw ; sh:datatype xsd:decimal ; sh:minCount 1 ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path aiems:validFrom ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:validUntil ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:protocolName ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:protocolVersion ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:encodedForProfile ; sh:class aiems:AdapterProfile ; sh:minCount 1 ] .
+
+aiems:CommandCapabilityShape a sh:NodeShape ;
+  sh:targetClass aiems:CommandIntent ;
+  sh:sparql [
+    sh:message "A smart-charging limit command requires a declared, supported EVSE capability."@en ;
+    sh:select "PREFIX aiems: <https://w3id.org/ev-energy-twin/ai-ems#> SELECT $this WHERE { $this aiems:commandAction \"set-charging-power-limit\" ; aiems:targetsEVSE ?evse . FILTER NOT EXISTS { ?evse aiems:declaresCapability ?capability . ?capability aiems:capabilityName \"smart-charging-power-limit\" ; aiems:capabilityStatus \"supported\" } }"
+  ] .
+
+aiems:CommandAcknowledgementShape a sh:NodeShape ;
+  sh:targetClass aiems:CommandAcknowledgement ;
+  sh:property [ sh:path aiems:acknowledges ; sh:class aiems:CommandIntent ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:correlationId ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:commandStatus ; sh:in ( "accepted" "rejected" "unknown" ) ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:acknowledgedAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:acceptedPowerKw ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:sparql [
+    sh:message "Acknowledgement correlationId must match the command correlationId."@en ;
+    sh:select "PREFIX aiems: <https://w3id.org/ev-energy-twin/ai-ems#> SELECT $this WHERE { $this aiems:acknowledges ?command ; aiems:correlationId ?ackId . ?command aiems:correlationId ?commandId . FILTER (?ackId != ?commandId) }"
+  ] ;
+  sh:sparql [
+    sh:message "An accepted acknowledgement must state the accepted power limit."@en ;
+    sh:select "PREFIX aiems: <https://w3id.org/ev-energy-twin/ai-ems#> SELECT $this WHERE { $this aiems:commandStatus \"accepted\" . FILTER NOT EXISTS { $this aiems:acceptedPowerKw ?power } }"
+  ] .
+
+aiems:ChargerFeedbackShape a sh:NodeShape ;
+  sh:targetClass aiems:ChargerFeedback ;
+  sh:property [ sh:path aiems:measuresAsset ; sh:class aiems:EnergyAsset ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:observedAt ; sh:datatype xsd:dateTime ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:dataQuality ; sh:in ( "good" "estimated" "stale" "missing" "invalid" ) ; sh:minCount 1 ] ;
+  sh:or (
+    [ sh:property [ sh:path aiems:measuredPowerKw ; sh:datatype xsd:decimal ; sh:minCount 1 ] ]
+    [ sh:property [ sh:path aiems:meterEnergyKwh ; sh:datatype xsd:decimal ; sh:minCount 1 ] ]
+    [ sh:property [ sh:path aiems:connectorStatus ; sh:datatype xsd:string ; sh:minCount 1 ] ]
+    [ sh:property [ sh:path aiems:faultCode ; sh:datatype xsd:string ; sh:minCount 1 ] ]
+    [ sh:property [ sh:path aiems:operationalState ; sh:datatype xsd:string ; sh:minCount 1 ] ]
+    [ sh:property [ sh:path aiems:stateOfCharge ; sh:datatype xsd:decimal ; sh:minCount 1 ; sh:minInclusive 0 ; sh:maxInclusive 1 ] ]
+  ) .
+
+aiems:MeterReadingShape a sh:NodeShape ;
+  sh:targetClass aiems:MeterReading ;
+  sh:property [ sh:path aiems:meterRegister ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:meterReadingType ; sh:in ( "cumulative" "interval" "start" "stop" ) ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:meterReadingStart ; sh:datatype xsd:dateTime ] ;
+  sh:property [ sh:path aiems:meterReadingEnd ; sh:datatype xsd:dateTime ] ;
+  sh:sparql [
+    sh:message "A meter-reading end time must be later than its start time."@en ;
+    sh:select "PREFIX aiems: <https://w3id.org/ev-energy-twin/ai-ems#> SELECT $this WHERE { $this aiems:meterReadingStart ?start ; aiems:meterReadingEnd ?end . FILTER (?end <= ?start) }"
+  ] .
+
+aiems:ReconciliationShape a sh:NodeShape ;
+  sh:targetClass aiems:Reconciliation ;
+  sh:property [ sh:path aiems:reconcilesCommand ; sh:class aiems:CommandIntent ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:usesAcknowledgement ; sh:class aiems:CommandAcknowledgement ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:usesFeedback ; sh:class aiems:ChargerFeedback ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:plannedPowerKw ; sh:datatype xsd:decimal ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:acknowledgedPowerKw ; sh:datatype xsd:decimal ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:measuredPowerKw ; sh:datatype xsd:decimal ; sh:minCount 1 ] ;
+  sh:property [ sh:path aiems:deviationKind ; sh:datatype xsd:string ; sh:minCount 1 ] ;
+  sh:sparql [
+    sh:message "Acknowledged reconciliation power must match the linked acknowledgement."@en ;
+    sh:select "PREFIX aiems: <https://w3id.org/ev-energy-twin/ai-ems#> SELECT $this WHERE { $this aiems:usesAcknowledgement ?ack ; aiems:acknowledgedPowerKw ?reconciledPower . ?ack aiems:acceptedPowerKw ?acceptedPower . FILTER (?reconciledPower != ?acceptedPower) }"
+  ] .
+
+aiems:TemporalOrderingShape a sh:NodeShape ;
+  sh:targetSubjectsOf aiems:validFrom ;
+  sh:sparql [
+    sh:message "validUntil must be later than validFrom when both are present."@en ;
+    sh:select "SELECT $this WHERE { $this <https://w3id.org/ev-energy-twin/ai-ems#validFrom> ?start ; <https://w3id.org/ev-energy-twin/ai-ems#validUntil> ?end . FILTER (?end <= ?start) }"
+  ] .

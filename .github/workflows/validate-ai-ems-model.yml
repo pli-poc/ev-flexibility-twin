@@ -1,0 +1,32 @@
+name: Validate AI EMS domain model
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ontology/**'
+      - 'scripts/validate_ontology.py'
+      - '.github/workflows/validate-ai-ems-model.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ontology/**'
+      - 'scripts/validate_ontology.py'
+      - '.github/workflows/validate-ai-ems-model.yml'
+permissions:
+  contents: read
+concurrency:
+  group: ai-ems-model-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install RDF validation tools
+        run: python -m pip install --disable-pip-version-check pyshacl
+      - name: Parse ontology and validate closed-loop contract
+        run: python scripts/validate_ontology.py

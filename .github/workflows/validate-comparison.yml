@@ -1,0 +1,45 @@
+name: Validate strategy comparison
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: comparison-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install application dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Compile and test simulation invariants
+        run: |
+          npx tsc lib/twin/engine.ts lib/twin/optimizer.ts lib/twin/comparison.ts lib/twin/annual.ts lib/twin/backtest.ts lib/twin/ml.ts lib/twin/replay.ts lib/twin/flexibility.ts --target es2022 --module commonjs --strict --skipLibCheck --outDir .test-build
+          node --test tests/comparison.cjs
+          node --test tests/ml-training.cjs
+          node --test tests/replay.cjs
+          node --test tests/flexibility.cjs
+      - name: Production static build
+        env:
+          NEXT_PUBLIC_BASE_PATH: /ev-flexibility-twin
+        run: npm run build:pages
+      - name: Install browser test tooling
+        run: |
+          npm install --no-save --package-lock=false --no-audit --no-fund playwright@1.55.1
+          npx playwright install --with-deps chromium
+      - name: Verify replay, export and mobile interactions
+        run: node tests/browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: comparison-browser-screenshots
+          path: test-results/
+          retention-days: 7
