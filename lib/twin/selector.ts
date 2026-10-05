@@ -1,18 +1,18 @@
-import {defaults,type Config} from './engine';
+import {defaults,vehiclesFor,type Config} from './engine';
 import {annualPreset,splitForDay} from './annual';
 import {optimizerDefaults,type OptimizerConfig,markets} from './optimizer';
 import {flexDefaults,runFlexibility,type FlexOptions,type FlexStrategy} from './flexibility';
-export const SELECTOR_KEY='ev-flexibility-strategy-selector-v1';
+export const SELECTOR_KEY='ev-flexibility-strategy-selector-v2';
 export const strategyIds:FlexStrategy[]=['immediate','balanced','ems','cheap','peak','total'];
-export const selectorFeatures=['year_sin','year_cos','grid_kw','solar_kwp','demand','chargers','battery','flexible_building','peak_target','market_code','request_kw_per_site','pool_sites','consent','control_latency','already_reserved_per_site','activation_minute','duration','explicit_product'];
+export const selectorFeatures=['year_sin','year_cos','grid_kw','solar_kwp','demand','chargers','battery','flexible_building','peak_target','market_code','request_kw_per_site','pool_sites','consent','control_latency','already_reserved_per_site','activation_minute','duration','explicit_product','requested_energy','vehicle_count','fleet_share','mean_stay','mean_required_power','charger_load_ratio','connection_load_ratio','peak_grid_ratio'];
 export type Objective={departureEurPerKwh:number;unsafeEurPerMinute:number;excessEurPerKwh:number};
 export const objectiveDefaults:Objective={departureEurPerKwh:20,unsafeEurPerMinute:1000,excessEurPerKwh:1000};
 export type SelectorSettings={seed:number;days:number;objective:Objective};
 export type Scenario={config:Config;optimizer:OptimizerConfig;flex:FlexOptions};
 export type Outcome={strategy:FlexStrategy;score:number;energyCost:number;netFlexValue:number;departureShortfall:number;deliveryShortfall:number;violationMinutes:number;accepted:boolean};
 export type SelectorRow={day:number;week:number;split:'train'|'validation'|'test';x:number[];winner:FlexStrategy;outcomes:Outcome[]};
-export type SelectorModel={schemaVersion:'ev-strategy-selector/1';algorithm:'standardized-knn';features:string[];k:number;mean:number[];scale:number[];examples:{x:number[];label:FlexStrategy}[];seed:number;objective:Objective;fingerprint:string;trainDays:number;validationDays:number;testDays:number;validationRegret:number};
-export function selectorInput(s:Scenario):number[]{const {config:c,optimizer:o,flex:f}=s,day=c.dayOfYear??0;return [Math.sin(2*Math.PI*day/365),Math.cos(2*Math.PI*day/365),c.grid,c.solar,c.demand,c.chargers,Number(c.battery),Number(c.flexible),o.peak,markets.findIndex(m=>m.id===o.market),f.requestKw/f.poolSites,f.poolSites,f.consent,f.latencySeconds,f.reservedKw/f.poolSites,f.start,f.duration,Number(f.product!=='tariff')];}
+export type SelectorModel={schemaVersion:'ev-strategy-selector/2';algorithm:'cost-sensitive-knn';baseline:FlexStrategy;weights:number[];margin:number;prior:number[];shrink:number;features:string[];k:number;mean:number[];scale:number[];examples:{x:number[];label:FlexStrategy;costs:number[]}[];seed:number;objective:Objective;fingerprint:string;trainDays:number;validationDays:number;testDays:number;validationRegret:number};
+export function selectorInput(s:Scenario):number[]{const {config:c,optimizer:o,flex:f}=s,day=c.dayOfYear??0,vs=vehiclesFor(c),energy=vs.reduce((n,v)=>n+v.need,0),stay=vs.reduce((n,v)=>n+v.departure-v.arrival,0)/vs.length,required=vs.reduce((n,v)=>n+v.need/(Math.max(1,v.departure-v.arrival)/60*.9),0);return [Math.sin(2*Math.PI*day/365),Math.cos(2*Math.PI*day/365),c.grid,c.solar,c.demand,c.chargers,Number(c.battery),Number(c.flexible),o.peak,markets.findIndex(m=>m.id===o.market),f.requestKw/f.poolSites,f.poolSites,f.consent,f.latencySeconds,f.reservedKw/f.poolSites,f.start,f.duration,Number(f.product!=='tariff'),energy,vs.length,vs.filter(v=>v.kind==='Fleet').length/vs.length,stay,required,required/Math.max(1,c.chargers*11),required/Math.max(1,c.grid),o.peak/c.grid];}
 function randomSource(seed:number){let state=seed>>>0;return ()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296;};}
 export function selectorScenario(day:number,seed:number):Scenario{
  const random=randomSource(seed+day*7919),pick=(n:number)=>Math.floor(random()*n);
@@ -35,18 +35,32 @@ export function generateSelectorRows(settings:SelectorSettings,progress?:(p:{day
  for(let i=0;i<settings.days;i++){const day=Math.floor(i*365/settings.days),s=selectorScenario(day,settings.seed),outcomes=evaluateStrategies(s,settings.objective);const row:SelectorRow={day,week:Math.floor(day/7),split:splitForDay(day),x:selectorInput(s),winner:winningStrategy(outcomes),outcomes};rows.push(row);counts[row.winner]++;progress?.({day:i+1,total:settings.days,last:row,counts:{...counts}});}
  return rows;
 }
-export function predictStrategy(model:SelectorModel,x:number[]):{strategy:FlexStrategy;voteShare:number;nearestDistance:number}{
+export function predictStrategy(model:SelectorModel,x:number[]):{strategy:FlexStrategy;voteShare:number;nearestDistance:number;estimatedCosts:number[];fallback:boolean}{
  if(x.length!==selectorFeatures.length||!x.every(Number.isFinite))throw Error('Invalid selector features');
- const neighbours=model.examples.map(e=>({label:e.label,distance:e.x.reduce((sum,v,i)=>sum+Math.pow((v-x[i])/model.scale[i],2),0)})).sort((a,b)=>a.distance-b.distance).slice(0,model.k);
- const votes=new Map<FlexStrategy,number>();for(const n of neighbours)votes.set(n.label,(votes.get(n.label)??0)+1/(Math.sqrt(n.distance)+.01));
- const sorted=[...votes.entries()].sort((a,b)=>b[1]-a[1]||strategyIds.indexOf(a[0])-strategyIds.indexOf(b[0]));return {strategy:sorted[0][0],voteShare:sorted[0][1]/[...votes.values()].reduce((s,v)=>s+v,0),nearestDistance:Math.sqrt(neighbours[0].distance)};
+ const neighbours=model.examples.map(e=>({e,distance:e.x.reduce((sum,v,i)=>sum+model.weights[i]*Math.pow((v-x[i])/model.scale[i],2),0)})).sort((a,b)=>a.distance-b.distance).slice(0,model.k);
+ const total=neighbours.reduce((s,n)=>s+1/(Math.sqrt(n.distance)+.05),0);
+ const estimatedCosts=strategyIds.map((_,i)=>(1-model.shrink)*neighbours.reduce((s,n)=>s+n.e.costs[i]/(Math.sqrt(n.distance)+.05),0)/total+model.shrink*model.prior[i]);
+ const best=estimatedCosts.indexOf(Math.min(...estimatedCosts)),base=strategyIds.indexOf(model.baseline),fallback=estimatedCosts[base]-estimatedCosts[best]<=model.margin;
+ const strategy=fallback?model.baseline:strategyIds[best];
+ const vote=neighbours.reduce((s,n)=>s+(n.e.label===strategy?1/(Math.sqrt(n.distance)+.05):0),0)/total;
+ return {strategy,voteShare:vote,nearestDistance:Math.sqrt(neighbours[0].distance),estimatedCosts,fallback};
 }
 const regret=(model:SelectorModel,rows:SelectorRow[])=>rows.reduce((sum,r)=>sum+r.outcomes.find(o=>o.strategy===predictStrategy(model,r.x).strategy)!.score-Math.min(...r.outcomes.map(o=>o.score)),0)/rows.length;
-export function fitSelector(rows:SelectorRow[],settings:SelectorSettings,onCandidate?:(p:{k:number;validationRegret:number})=>void):SelectorModel{
+export function fitSelector(rows:SelectorRow[],settings:SelectorSettings,onCandidate?:(p:{k:number;validationRegret:number;label?:string})=>void):SelectorModel{
  validateObjective(settings.objective);const train=rows.filter(r=>r.split==='train'),validation=rows.filter(r=>r.split==='validation'),test=rows.filter(r=>r.split==='test');if(train.length<5||validation.length<2||test.length<2)throw Error('Not enough whole-week groups in each split');
  const mean=selectorFeatures.map((_,i)=>train.reduce((s,r)=>s+r.x[i],0)/train.length),scale=mean.map((m,i)=>Math.max(.001,Math.sqrt(train.reduce((s,r)=>s+Math.pow(r.x[i]-m,2),0)/train.length)));
- const model:SelectorModel={schemaVersion:'ev-strategy-selector/1',algorithm:'standardized-knn',features:[...selectorFeatures],k:1,mean,scale,examples:train.map(r=>({x:[...r.x],label:r.winner})),seed:settings.seed,objective:{...settings.objective},fingerprint:fingerprint(JSON.stringify({settings,rows})),trainDays:train.length,validationDays:validation.length,testDays:test.length,validationRegret:0};
- let best=Infinity,bestK=1;for(const k of [1,3,5,7,9].filter(k=>k<=train.length)){model.k=k;const value=regret(model,validation);onCandidate?.({k,validationRegret:value});if(value<best){best=value;bestK=k;}}model.k=bestK;model.validationRegret=best;return model;
+ const examples=train.map(r=>{const floor=Math.min(...r.outcomes.map(o=>o.score)),pool=Math.max(1,r.x[11]);return {x:[...r.x],label:r.winner,costs:strategyIds.map(id=>(r.outcomes.find(o=>o.strategy===id)!.score-floor)/pool)};});
+ const prior=strategyIds.map((_,i)=>examples.reduce((s,e)=>s+e.costs[i],0)/examples.length);
+ const fixed=strategyIds.map(id=>({id,loss:validation.reduce((s,r)=>s+r.outcomes.find(o=>o.strategy===id)!.score,0)})).sort((a,b)=>a.loss-b.loss)[0].id;
+ const model:SelectorModel={schemaVersion:'ev-strategy-selector/2',algorithm:'cost-sensitive-knn',baseline:fixed,weights:selectorFeatures.map(()=>1),margin:0,prior,shrink:0,features:[...selectorFeatures],k:1,mean,scale,examples,seed:settings.seed,objective:{...settings.objective},fingerprint:fingerprint(JSON.stringify({settings,train,validation})),trainDays:train.length,validationDays:validation.length,testDays:test.length,validationRegret:0};
+ // Include the validation-selected fixed fallback as a candidate; learning must earn a switch.
+ model.margin=1e15;let best=regret(model,validation),chosen={k:1,weights:[...model.weights],margin:1e15,shrink:0};onCandidate?.({k:0,validationRegret:best,label:`Fixed fallback: ${fixed}`});
+ const masks=[selectorFeatures.map(()=>1),selectorFeatures.map((_,i)=>[2,3,4,5,6,7,8,9,18,19,20,21,22,23,24,25].includes(i)?1:.1),selectorFeatures.map((_,i)=>i>=18?2:([2,3,4,5,8,9].includes(i)?1:.05))];
+ for(const k of [1,3,5,9,15,25,45].filter(k=>k<=train.length))for(let mask=0;mask<masks.length;mask++)for(const shrink of [0,.25,.5])for(const margin of [0,2,10,50]){
+  model.k=k;model.weights=masks[mask];model.shrink=shrink;model.margin=margin;const value=regret(model,validation);
+  if(value<best-1e-9){best=value;chosen={k,weights:[...model.weights],margin,shrink};onCandidate?.({k,validationRegret:value,label:`cost k=${k}, features=${mask+1}, shrink=${shrink}, margin=${margin}`});}
+ }
+ Object.assign(model,chosen);model.validationRegret=best;return model;
 }
 export function selectorEvaluation(model:SelectorModel,rows:SelectorRow[]){const test=rows.filter(r=>r.split==='test');if(!test.length)throw Error('No held-out scenarios');
  const confusion=strategyIds.map(actual=>({actual,...Object.fromEntries(strategyIds.map(predicted=>[predicted,0]))})) as {actual:FlexStrategy;[key:string]:number|string}[];
@@ -56,4 +70,4 @@ export function selectorEvaluation(model:SelectorModel,rows:SelectorRow[]){const
  return {day:r.day,predicted:p.strategy,winner:r.winner,voteShare:p.voteShare,regret:selected.score-oracle.score};});
  return {testDays:test.length,agreement:correct/test.length,meanRegret:regret(model,test),totals,confusion,predictions};
 }
-export function isSelector(value:unknown):value is SelectorModel{try{const m=value as SelectorModel;if(!m||m.schemaVersion!=='ev-strategy-selector/1'||m.algorithm!=='standardized-knn'||!Array.isArray(m.features)||m.features.join('|')!==selectorFeatures.join('|')||!Number.isInteger(m.k)||m.k<1||!Array.isArray(m.examples)||m.examples.length<m.k||m.examples.length>365||m.trainDays!==m.examples.length||!Array.isArray(m.scale)||m.scale.length!==selectorFeatures.length||!m.scale.every(v=>Number.isFinite(v)&&v>0)||!Array.isArray(m.mean)||m.mean.length!==selectorFeatures.length||!m.mean.every(Number.isFinite)||!m.examples.every(e=>strategyIds.includes(e.label)&&Array.isArray(e.x)&&e.x.length===selectorFeatures.length&&e.x.every(Number.isFinite)))return false;validateObjective(m.objective);return Number.isInteger(m.seed)&&m.seed>=0&&m.seed<=100000&&typeof m.fingerprint==='string';}catch{return false;}}
+export function isSelector(value:unknown):value is SelectorModel{try{const m=value as SelectorModel;if(!m||m.schemaVersion!=='ev-strategy-selector/2'||m.algorithm!=='cost-sensitive-knn'||!strategyIds.includes(m.baseline)||!Array.isArray(m.weights)||m.weights.length!==selectorFeatures.length||!m.weights.every(v=>Number.isFinite(v)&&v>=0)||!m.weights.some(v=>v>0)||!Number.isFinite(m.margin)||m.margin<0||!Number.isFinite(m.shrink)||m.shrink<0||m.shrink>1||!Array.isArray(m.prior)||m.prior.length!==6||!m.prior.every(Number.isFinite)||!Array.isArray(m.features)||m.features.join('|')!==selectorFeatures.join('|')||!Number.isInteger(m.k)||m.k<1||!Array.isArray(m.examples)||m.examples.length<m.k||m.examples.length>365||m.trainDays!==m.examples.length||!Array.isArray(m.scale)||m.scale.length!==selectorFeatures.length||!m.scale.every(v=>Number.isFinite(v)&&v>0)||!Array.isArray(m.mean)||m.mean.length!==selectorFeatures.length||!m.mean.every(Number.isFinite)||!m.examples.every(e=>strategyIds.includes(e.label)&&Array.isArray(e.x)&&e.x.length===selectorFeatures.length&&e.x.every(Number.isFinite)&&Array.isArray(e.costs)&&e.costs.length===6&&e.costs.every(v=>Number.isFinite(v)&&v>=0)))return false;validateObjective(m.objective);return Number.isInteger(m.seed)&&m.seed>=0&&m.seed<=100000&&typeof m.fingerprint==='string';}catch{return false;}}

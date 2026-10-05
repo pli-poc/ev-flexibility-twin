@@ -1,6 +1,6 @@
 # EV Flexibility Twin — AI & Market Simulation
 
-Standalone synthetic EV charging, AI training and virtual flexibility markets. Open `/flexibility/` for the market lab, `/strategy-training/` for learning across all six strategies, and `/training/` for the independent single-teacher charging MLP. See [flexibility model and limitations](docs/flexibility-markets.md) and [six-strategy learning](docs/strategy-learning.md).
+Standalone synthetic EV charging, AI training and virtual flexibility markets. Open `/flexibility/` for the market lab, `/strategy-training/` for cost-sensitive learning across all six strategies with a fresh-seed benchmark, and `/training/` for the independent single-teacher charging MLP. See [flexibility model and limitations](docs/flexibility-markets.md) and [six-strategy learning](docs/strategy-learning.md).
 
 # EV Energy Twin AI EMS
 

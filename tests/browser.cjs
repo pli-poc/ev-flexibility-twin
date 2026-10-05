@@ -21,7 +21,7 @@ const {spawn}=require('node:child_process');
   await page.getByRole('heading',{name:'Held-out results: AI versus every fixed strategy',exact:true}).waitFor({timeout:180000});
   assert.equal(await page.locator('.selector-highlight').count(),1);
   const selectorDownload=page.waitForEvent('download');await page.getByRole('button',{name:'Export selector',exact:true}).click();
-  const selectorFile=await selectorDownload;const selectorModel=JSON.parse(fs.readFileSync(await selectorFile.path(),'utf8'));assert.equal(selectorModel.schemaVersion,'ev-strategy-selector/1');assert.ok(selectorModel.examples.length>0);
+  const selectorFile=await selectorDownload;const selectorModel=JSON.parse(fs.readFileSync(await selectorFile.path(),'utf8'));assert.equal(selectorModel.schemaVersion,'ev-strategy-selector/2');assert.ok(selectorModel.examples.length>0);
   await page.screenshot({path:'test-results/strategy-learning-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});
   await page.waitForFunction(()=>document.documentElement.scrollWidth<=window.innerWidth);
@@ -29,7 +29,7 @@ const {spawn}=require('node:child_process');
   await page.setViewportSize({width:1600,height:1000});
   await page.getByRole('link',{name:'Replay with learned selection',exact:true}).click();
   assert.ok(await page.getByRole('switch',{name:'Use learned strategy selector'}).isChecked());
-  assert.ok((await page.locator('.flex-results').innerText()).includes('weighted vote share'));
+  assert.ok((await page.locator('.flex-results').innerText()).includes('neighbour label agreement'));
   await page.getByRole('button',{name:'Reset to depot example',exact:true}).click();
   await page.getByRole('link',{name:'EMS simulator',exact:true}).click();
 
