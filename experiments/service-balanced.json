@@ -1,0 +1,18 @@
+{
+  "schema": "ev-service-protocol/2",
+  "fixture": "recurring-patterns/1",
+  "modelSha256": "85d92e2e5ba79cb61abcdcc6d6cba8319c7cb8fc0437810a9d1569ddcf487d19",
+  "sourceCommit": "78d5b5c8f0f6bed6a6ba80a9cdde1bea26ba39df",
+  "development": "Follow-up after service-hybrid/1 failed its overall acceptance gate. Add a fair-share reservation to completion-aware scheduling; choose settings only on the existing validation population and evaluate on another untouched seed/date matrix. Preserve the failed first-stage evidence.",
+  "validationDays": [21,22,23,24,25,26,27,203,204,205,206,207,208,209],
+  "validationSeeds": [15443,90214],
+  "testDays": [35,36,37,38,39,40,41,126,127,128,129,130,131,132,217,218,219,220,221,222,223,308,309,310,311,312,313,314],
+  "testSeeds": [12203,23317,34429,45541,56657,67771,78883,89989],
+  "conditions": ["normal","tight","fault","offline","stale"],
+  "fixedPolicies": ["immediate","balanced","ems","cheap","peak","total"],
+  "candidates": {"quantiles":[0.1,0.5,0.8],"margins":[0,60,180],"headroomWeights":[0],"modes":["completion"],"fairShares":[0.25,0.5,0.75]},
+  "selection": "Select the safe fixed reference with most fully ready departures, then least unmet energy and incremental charging cost. For learned candidates first require at least one percentage point more fully ready departures, lower unmet energy, and no more than 1% higher incremental unit cost against that reference on validation; then rank by readiness, unmet energy and incremental bill. If none qualifies retain the best candidate only as an explicitly unaccepted experiment. Select the strongest unlearned candidate independently by the same readiness-first ranking. Freeze before test execution.",
+  "acceptance": {"minimumReadyRateGain":0.01,"maximumIncrementalUnitCostIncrease":0.01,"requireLowerUnmet":true,"requireZeroViolations":true,"requireNoConditionServiceRegression":true,"requirePositiveReadyAndUnmetBootstrapLowerBounds":true},
+  "bootstrap": {"unit":"whole test seed","resamples":5000,"seed":161803},
+  "cost": "Site bill and incremental EV bill over a same-weather no-EV counterfactual, divided by battery kWh delivered. This is service-normalised accounting, not proof of equivalent-service savings."
+}

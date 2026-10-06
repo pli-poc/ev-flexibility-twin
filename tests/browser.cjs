@@ -15,6 +15,30 @@ const {spawn}=require('node:child_process');
   await page.goto('http://127.0.0.1:4173/ev-flexibility-twin/',{waitUntil:'networkidle'});
   await page.getByRole('heading',{name:'One site. A shared energy system.',exact:true}).waitFor();
   await page.getByRole('link',{name:'Specialised AI lab',exact:true}).click();
+  const service=require('../public/models/service-balanced-evidence.json'),proof=require('../public/models/service-proof.json');
+  await page.getByRole('heading',{name:'Does forecasting improve charging?',exact:true}).waitFor();
+  await page.waitForFunction(()=>document.querySelector('.service-proof .service-proof-metrics')?.textContent.includes('+708'));
+  assert.ok((await page.locator('.service-proof .specialist-verdict').innerText()).includes('overall gate not passed'));
+  const serviceDownload=page.waitForEvent('download');await page.getByRole('link',{name:'Download full service evidence',exact:true}).click();
+  const serviceFile=await serviceDownload,serviceBytes=fs.readFileSync(await serviceFile.path(),'utf8');
+  assert.equal(require('node:crypto').createHash('sha256').update(serviceBytes).digest('hex'),proof.evidenceSha256);
+  await page.getByText('Inspect a paired charging day',{exact:true}).click();
+  await page.getByRole('button',{name:'Load paired service replay',exact:true}).click();
+  await page.getByRole('table',{name:'Paired service replay results',exact:true}).waitFor();
+  async function verifyServiceReplay(seed,day,condition,reference){
+   const row=service.rows.find(r=>r.seed===seed&&r.day===day&&r.condition===condition),expected=['hybrid-ai',reference].map(id=>{
+    const r=row.runs.find(x=>x.policy===id),n=x=>x.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});return [`${r.ready} / ${r.visits}`,n(r.unmet),n(r.cost),String(r.violations)];
+   });
+   await page.waitForFunction(expected=>{const rows=[...document.querySelectorAll('table[aria-label="Paired service replay results"] tbody tr')];return JSON.stringify(rows.map(r=>[...r.querySelectorAll('td')].map(c=>c.textContent)))===JSON.stringify(expected);},expected);
+  }
+  await verifyServiceReplay(12203,35,'normal','hybrid-ablated');
+  await page.getByLabel('Service proof comparison').selectOption('balanced');await verifyServiceReplay(12203,35,'normal','balanced');
+  await page.getByLabel('Service replay seed').selectOption('23317');await page.getByLabel('Service replay day').selectOption('126');await page.getByLabel('Service replay condition').selectOption('tight');
+  await page.getByLabel('Service proof comparison').selectOption('hybrid-no-ai');await verifyServiceReplay(23317,126,'tight','hybrid-no-ai');
+  await page.locator('.service-proof').screenshot({path:'test-results/service-proof-desktop.png'});
+  await page.setViewportSize({width:390,height:844});await page.waitForFunction(()=>document.documentElement.scrollWidth<=window.innerWidth);await page.locator('.service-proof').screenshot({path:'test-results/service-proof-mobile.png'});
+  await page.setViewportSize({width:1600,height:1000});await page.getByText('Inspect a paired charging day',{exact:true}).click();
+  console.log('PASS: service proof keeps the failed overall gate visible, downloads the exact frozen evidence and reproduces paired normal/tight days against all three references on desktop and mobile.');
   await page.getByRole('button',{name:'Load reference experiment',exact:true}).click();
   await page.getByRole('heading',{name:'Frozen specialist benchmark',exact:true}).waitFor();
   assert.equal(await page.locator('.specialist-card').count(),4);

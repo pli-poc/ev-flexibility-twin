@@ -12,7 +12,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,7 +22,7 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Compile and test simulation invariants
         run: |
-          npx tsc lib/twin/engine.ts lib/twin/optimizer.ts lib/twin/comparison.ts lib/twin/annual.ts lib/twin/backtest.ts lib/twin/ml.ts lib/twin/replay.ts lib/twin/flexibility.ts lib/twin/selector.ts lib/twin/forecast.ts lib/twin/physical-forecast.ts lib/twin/specialist-controller.ts --target es2022 --module commonjs --strict --skipLibCheck --outDir .test-build
+          npx tsc lib/twin/engine.ts lib/twin/optimizer.ts lib/twin/comparison.ts lib/twin/annual.ts lib/twin/backtest.ts lib/twin/ml.ts lib/twin/replay.ts lib/twin/flexibility.ts lib/twin/selector.ts lib/twin/forecast.ts lib/twin/physical-forecast.ts lib/twin/specialist-controller.ts lib/twin/service-hybrid.ts --target es2022 --module commonjs --strict --skipLibCheck --outDir .test-build
           node --test tests/comparison.cjs
           node --test tests/ml-training.cjs
           node --test tests/replay.cjs
@@ -32,8 +32,13 @@ jobs:
           node --test tests/physical-forecast.cjs
           node --test tests/specialists.cjs
           node --test tests/uncertainty.cjs
+          node --test tests/service-hybrid.cjs tests/service-evidence.cjs
       - name: Reproduce frozen departure and building-solar experiment
         run: node scripts/benchmark-uncertainty.cjs --verify
+      - name: Reproduce service-first hybrid across weekdays and seasons
+        run: node scripts/benchmark-service.cjs --verify
+      - name: Reproduce final fair-share hybrid and its demo summary
+        run: node scripts/benchmark-service.cjs --balanced --verify
       - name: Production static build
         env:
           NEXT_PUBLIC_BASE_PATH: /ev-flexibility-twin
@@ -57,4 +62,17 @@ jobs:
           path: |
             experiments/uncertainty-only.json
             public/models/uncertainty-evidence.json
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: service-hybrid-evidence
+          path: |
+            experiments/service-hybrid.json
+            public/models/service-hybrid-validation.json
+            public/models/service-hybrid-evidence.json
+            experiments/service-balanced.json
+            public/models/service-balanced-validation.json
+            public/models/service-balanced-evidence.json
+            public/models/service-proof.json
           retention-days: 14
