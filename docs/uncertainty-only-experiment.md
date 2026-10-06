@@ -27,6 +27,8 @@ The frozen objective remains site energy EUR + 20 Ã— unmet battery kWh + 1,000 Ã
 
 Intervals resample **whole seeds**, keeping all their dates, operating conditions and paired policies together, with 5,000 deterministic bootstrap resamples. Only ten synthetic seed clusters exist. Intervals are exploratory; new noise and dates within this deliberately learnable fixture do not establish generalisation to real sites or unseen driver populations.
 
+The five dates are 70 days apart, so they all share the fixture's weekday index (`day % 7 = 1`). They cover seasons but do not exercise the Friday-specific departure shift. The protocol was fixed before this run; these results therefore have limited weekday coverage, and a broader calendar test would require a separately frozen evaluation.
+
 ## Results
 
 | Controller | Site energy EUR | Unmet battery kWh | Fully ready / 4,500 | Grid violations (minutes) | Weighted loss |
@@ -88,3 +90,5 @@ node scripts/benchmark-uncertainty.cjs --verify
 ```
 
 The first benchmark command writes [the evidence JSON](../public/models/uncertainty-evidence.json); `--verify` reruns all scenarios and requires an exact match to the saved evidence. The CLI evaluates contiguous seed groups in up to four worker threads, preserving the original sequential row and summation order. The model hash check rejects silently changed weights or settings. Five additional tests verify disabled-model isolation, exact baseline equivalence, shared physical limits and local fallback, seed isolation and immutable evaluation, and seed-cluster bootstrap direction. GitHub Actions runs these tests and reproduces the entire evidence package before the existing static build and browser checks.
+
+Validation for implementation commit `36a3a57`: all five new local tests passed, and the parallel CLI reproduced the sequential evidence exactly on Node 24. GitHub's [simulation tests, exact Node 22 reproduction, production build and browser checks](https://github.com/pli-poc/ev-flexibility-twin/actions/runs/37392178350) passed. The [Pages deployment](https://github.com/pli-poc/ev-flexibility-twin/actions/runs/37392178412) succeeded, and the [live evidence JSON](https://pli-poc.github.io/ev-flexibility-twin/models/uncertainty-evidence.json) returned HTTP 200 with bytes identical to the committed file.
