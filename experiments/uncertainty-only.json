@@ -1,0 +1,17 @@
+{
+  "schema": "ev-uncertainty-protocol/1",
+  "fixture": "recurring-patterns/1",
+  "modelPath": "public/models/specialist-reference.json",
+  "modelSha256": "85d92e2e5ba79cb61abcdcc6d6cba8319c7cb8fc0437810a9d1569ddcf487d19",
+  "sourceCommit": "831b25f4b988aa8d3fc08ac580501f1d574180bf",
+  "days": [15, 85, 155, 225, 295],
+  "seeds": [6101, 11827, 22613, 33289, 44531, 55949, 66337, 77773, 88469, 99607],
+  "conditions": ["normal", "tight", "fault", "offline", "stale"],
+  "arms": ["none", "departure", "headroom", "both", "ems", "full"],
+  "primaryComparison": "both versus none on the same common planner",
+  "referenceComparison": "both versus the validation-selected deadline-aware EMS",
+  "settings": {"quantile": 0.02, "competition": 0.08, "weatherBuffer": 0.5, "baselineMargin": 0},
+  "objective": {"unmetEurPerKwh": 20, "violationEurPerMinute": 1000},
+  "bootstrap": {"unit": "whole scenario seed", "resamples": 5000, "seed": 271828},
+  "selection": "Reuse existing weights, residual calibration and validation-selected settings. No training, tuning, or operating-policy selection on these test cases. Arrival and energy networks are disabled in all four factorial arms."
+}
